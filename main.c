@@ -53,7 +53,7 @@ int main(int argc, char **argv)
   }
   printf("0 !\n");
   printerClean(penv);
-  timeInitialize((argc > 2) ? atoi(argv[2]) : 0);
+  timeInitialize((argc > 2) ? -atoi(argv[2]) : 0);
   
   struct SubtitleLine sline;
   int id = 0;
