@@ -43,6 +43,7 @@ By default, the program leave you 5 seconds to start your video, you can change 
 
 * Manage some evenement, like pauses.
 * Support more type of file (with an extern library ?)
+* Use a larger, customizable font
 
 Every improvement is welcome !
 
