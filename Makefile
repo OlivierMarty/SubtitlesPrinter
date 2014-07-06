@@ -23,10 +23,10 @@ LIBS=$(shell pkg-config --cflags --libs x11)
 
 OBJS = $(SRCS:.c=.o)
 
-default: subtitles
+default: subtitlesPrinter
 
-subtitles: $(OBJS)
-	$(CC) -o subtitles $^ $(CFLAGS) $(LIBS) 
+subtitlesPrinter: $(OBJS)
+	$(CC) -o subtitlesPrinter $^ $(CFLAGS) $(LIBS) 
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
