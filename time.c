@@ -20,7 +20,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-int timeNanoSleep(struct timespec t)
+int timeSleep(struct timespec t)
 {
   int r;
   if(t.tv_sec >= 0)
@@ -71,7 +71,7 @@ struct timespec timeGetRelative()
 int timeSleepUntil(struct timespec t)
 {
   struct timespec current = timeGetRelative();
-  return timeNanoSleep(timeDiff(t, current));
+  return timeSleep(timeDiff(t, current));
 }
 
 struct timespec timeCreate(time_t s, long ns)

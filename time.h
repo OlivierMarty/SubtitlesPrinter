@@ -29,7 +29,7 @@ int timeSleepUntil(mytime t);
 
 mytime timeCreate(time_t s, long ns);
 
-int timeNanoSleep(mytime t);
+int timeSleep(mytime t);
 mytime timeDiff(mytime a, mytime b);
 
 #endif
