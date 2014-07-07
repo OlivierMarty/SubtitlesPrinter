@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/keysym.h>
 #include <string.h>
 
 char *strnstr(const char *s, const char *find, size_t slen)
@@ -43,6 +44,23 @@ char *strnstr(const char *s, const char *find, size_t slen)
 	return ((char *)s);
 }
 
+void loadFont(struct printerEnv *env, XFontStruct **font, char* fontname)
+{
+  *font = XLoadQueryFont(env->d, fontname);
+  if(!*font)
+  {
+    fprintf (stderr, "unable to load font %s\n", fontname);
+    *font = env->fontinfo;
+  }
+  else
+  {
+    if((*font)->ascent > env->maxascent)
+      env->maxascent = (*font)->ascent;
+    if((*font)->descent > env->maxdescent)
+      env->maxdescent = (*font)->descent;
+  }
+}
+
 struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
   char *font, char *font_i, char *font_b, char *font_bi)
 {
@@ -58,7 +76,6 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
 
   XVisualInfo vinfo;
   XMatchVisualInfo(env.d, env.s, 32, TrueColor, &vinfo);
-
   
   // size of the screen
   XWindowAttributes RootAttr;
@@ -91,18 +108,8 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
     CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attr);
   
   // setting fonts
-  char *fontname    = "*x24*",//"*charter-medium-r-normal*",
-       *fontname_i  = "*charter-medium-i-normal*",
-       *fontname_b  = "*charter-bold-r-normal*",
-       *fontname_bi = "*charter-bold-i-normal*";
-  fontname    = (font == NULL)    ? fontname    : font;
-  fontname_i  = (font_i == NULL)  ? fontname_i  : font_i;
-  fontname_b  = (font_b == NULL)  ? fontname_b  : font_b;
-  fontname_bi = (font_bi == NULL) ? fontname_bi : font_bi;
+  char *fontname = (font == NULL) ? "*x24*" : font;
   env.fontinfo    = XLoadQueryFont(env.d, fontname);
-  env.fontinfo_i  = XLoadQueryFont(env.d, fontname_i);
-  env.fontinfo_b  = XLoadQueryFont(env.d, fontname_b);
-  env.fontinfo_bi = XLoadQueryFont(env.d, fontname_bi);
   if(!env.fontinfo)
   {
     fprintf (stderr, "unable to load font %s: using fixed\n", fontname);
@@ -110,43 +117,14 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
   }
   env.maxascent = env.fontinfo->ascent;
   env.maxdescent = env.fontinfo->descent;
-  if(!env.fontinfo_i)
-  {
-    fprintf (stderr, "unable to load font %s\n", fontname_i);
-    env.fontinfo_i = env.fontinfo;
-  }
-  else
-  {
-    if(env.fontinfo_i->ascent > env.maxascent)
-      env.maxascent = env.fontinfo_i->ascent;
-    if(env.fontinfo_i->descent > env.maxdescent)
-      env.maxdescent = env.fontinfo_i->descent;
-  }
-  if(!env.fontinfo_b)
-  {
-    fprintf (stderr, "unable to load font %s\n", fontname_b);
-    env.fontinfo_b = env.fontinfo;
-  }
-  else
-  {
-    if(env.fontinfo_b->ascent > env.maxascent)
-      env.maxascent = env.fontinfo_b->ascent;
-    if(env.fontinfo_b->descent > env.maxdescent)
-      env.maxdescent = env.fontinfo_b->descent;
-  }
-  if(!env.fontinfo_bi)
-  {
-    fprintf (stderr, "unable to load font %s\n", fontname_bi);
-    env.fontinfo_bi = env.fontinfo;
-  }
-  else
-  {
-    if(env.fontinfo_bi->ascent > env.maxascent)
-      env.maxascent = env.fontinfo_bi->ascent;
-    if(env.fontinfo_bi->descent > env.maxdescent)
-      env.maxdescent = env.fontinfo_bi->descent;
-  }
+  loadFont(&env, &env.fontinfo_i, (font_i == NULL) ? "*charter-medium-i-normal*"
+    : font_i);
+  loadFont(&env, &env.fontinfo_b, (font_b == NULL) ? "*charter-bold-r-normal*"
+    : font_b);
+  loadFont(&env, &env.fontinfo_bi, (font_bi == NULL) ? "*charter-bold-i-normal*"
+    : font_bi);
   
+  // create GC
   XGCValues gr_values;
   gr_values.font = env.fontinfo->fid;
   gr_values.foreground = XWhitePixel(env.d, env.s);
@@ -155,6 +133,14 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
   
   // event to be listened
   //XSelectInput(env.d, env.w, ExposureMask | KeyPressMask);
+  /*
+  XEvent e;
+  while(XCheckWindowEvent(env.d, env.w, KeyPressMask, &e))
+  {
+    if(e.type == KeyPress && XLookupKeysym(&(e.xkey), 0) == XK_space)
+      printf("PAUSE\n");
+  }
+  */
   
   // display the window
   XMapWindow(env.d, env.w);
@@ -165,7 +151,7 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
 
 void printerCloseWindow(struct printerEnv env)
 {
-  XCloseDisplay(env.d); // window is destroyed
+  XCloseDisplay(env.d); // window is automatically destroyed
 }
 
 XFontStruct* getFont(struct printerEnv env, enum t_type flags)
