@@ -271,7 +271,7 @@ int printLines(struct printerEnv env, char *text, int gap, int y,
 {
   char *next;
   int size;
-  int width;
+  int width = 0;
   
   next = strchr(text, '\n');
   if(next == NULL)
