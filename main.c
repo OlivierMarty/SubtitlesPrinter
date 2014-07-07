@@ -40,7 +40,7 @@ int main(int argc, char **argv)
   }
   
   // open the window
-  struct printerEnv penv = printerOpenWindow(-1, 240, 50);
+  struct printerEnv penv = printerOpenWindow(-1, 240, 0);
   
   // show a counter before start the clock
   for(i = (argc > 3) ? atoi(argv[3]) : 5; i > 0; i--)
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     char t[16];
     sprintf(t, "%d...\n", i);
     printf("%s", t);
-    printerShow(penv, t);
+    printerShow(penv, t, T_ITALIC);
     sleep(1);
   }
   printf("0 !\n");
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     
     // show
     printf("%s\n", sline.text);
-    printerShow(penv, sline.text);
+    printerShow(penv, sline.text, 0);
     
     // hide
     timeSleepUntil(sline.end);

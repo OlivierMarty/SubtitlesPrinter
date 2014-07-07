@@ -23,6 +23,27 @@
 #include <X11/Xutil.h>
 #include <string.h>
 
+char *strnstr(const char *s, const char *find, size_t slen)
+{
+	char c, sc;
+	size_t len;
+
+	if ((c = *find++) != '\0') {
+		len = strlen(find);
+		do {
+			do {
+				if ((sc = *s++) == '\0' || slen-- < 1)
+					return (NULL);
+			} while (sc != c);
+			if (len > slen)
+				return (NULL);
+		} while (strncmp(s, find, len) != 0);
+		s--;
+	}
+	return ((char *)s);
+}
+
+
 struct printerEnv printerOpenWindow(int width, int height, int padding_bottom)
 {
   struct printerEnv env;
@@ -69,9 +90,60 @@ struct printerEnv printerOpenWindow(int width, int height, int padding_bottom)
     vinfo.depth, InputOutput, vinfo.visual,
     CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attr);
   
-  // set the font in a new GC
+  // setting fonts
+  char fontname[]    = "*x24*",//"*charter-medium-r-normal*",
+       fontname_i[]  = "*charter-medium-i-normal*",
+       fontname_b[]  = "*charter-bold-r-normal*",
+       fontname_bi[] = "*charter-bold-i-normal*";
+  env.fontinfo    = XLoadQueryFont(env.d, fontname);
+  env.fontinfo_i  = XLoadQueryFont(env.d, fontname_i);
+  env.fontinfo_b  = XLoadQueryFont(env.d, fontname_b);
+  env.fontinfo_bi = XLoadQueryFont(env.d, fontname_bi);
+  if(!env.fontinfo)
+  {
+    fprintf (stderr, "unable to load font %s: using fixed\n", fontname);
+    env.fontinfo = XLoadQueryFont(env.d, "fixed");
+  }
+  env.maxascent = env.fontinfo->ascent;
+  env.maxdescent = env.fontinfo->descent;
+  if(!env.fontinfo_i)
+  {
+    fprintf (stderr, "unable to load font %s\n", fontname_i);
+    env.fontinfo_i = env.fontinfo;
+  }
+  else
+  {
+    if(env.fontinfo_i->ascent > env.maxascent)
+      env.maxascent = env.fontinfo_i->ascent;
+    if(env.fontinfo_i->descent > env.maxdescent)
+      env.maxdescent = env.fontinfo_i->descent;
+  }
+  if(!env.fontinfo_b)
+  {
+    fprintf (stderr, "unable to load font %s\n", fontname_b);
+    env.fontinfo_b = env.fontinfo;
+  }
+  else
+  {
+    if(env.fontinfo_b->ascent > env.maxascent)
+      env.maxascent = env.fontinfo_b->ascent;
+    if(env.fontinfo_b->descent > env.maxdescent)
+      env.maxdescent = env.fontinfo_b->descent;
+  }
+  if(!env.fontinfo_bi)
+  {
+    fprintf (stderr, "unable to load font %s\n", fontname_bi);
+    env.fontinfo_bi = env.fontinfo;
+  }
+  else
+  {
+    if(env.fontinfo_bi->ascent > env.maxascent)
+      env.maxascent = env.fontinfo_bi->ascent;
+    if(env.fontinfo_bi->descent > env.maxdescent)
+      env.maxdescent = env.fontinfo_bi->descent;
+  }
+  
   XGCValues gr_values;
-  env.fontinfo = XLoadQueryFont(env.d, "*x24");
   gr_values.font = env.fontinfo->fid;
   gr_values.foreground = XWhitePixel(env.d, env.s);
   gr_values.background = XBlackPixel(env.d, env.s);
@@ -92,20 +164,124 @@ void printerCloseWindow(struct printerEnv env)
   XCloseDisplay(env.d); // window is destroyed
 }
 
-int printLines(struct printerEnv env, char *text, int gap,
-  int width, int height, int padding) // for the frame
+XFontStruct* getFont(struct printerEnv env, enum t_type flags)
 {
-  if(*text == '\0')
+  if(flags & T_ITALIC && flags & T_BOLD)
+    return env.fontinfo_bi;
+  if(flags & T_ITALIC)
+    return env.fontinfo_i;
+  if(flags & T_BOLD)
+    return env.fontinfo_b;
+  return env.fontinfo;
+}
+
+// return the width of the text drawn
+// look for i and b html tags
+// bug when there is several i (or several v) nested
+// set in rflags the flags at the end of the text
+int drawText(struct printerEnv env, char *text, int size,
+  int x, int y, enum t_type flags, enum t_type *rflags, int draw)
+{
+  char *i = strnstr(text, "<i>", size),
+       *b = strnstr(text, "<b>", size),
+       *begin = NULL, *end = NULL;
+  int  wopentag = 0, wclosetag = 0,
+       width;
+  enum t_type nflags = flags;
+  *rflags = flags;
+  if(i != NULL && (b == NULL || i < b)) // i is the first
   {
-    XSetForeground(env.d, env.gc, env.color_background);
-    XFillRectangle(env.d, env.w, env.gc, (env.width - width)/2 - padding,
-      env.height - height - padding, width + 2*padding, height + 2*padding);
-    XSetForeground(env.d, env.gc, env.color_text);
-    return env.height - padding;
+    wopentag = 3;
+    begin = i;
+    end = strnstr(i, "</i>", size - (i - text));
+    nflags |= T_ITALIC;
+    if(end != NULL)
+      wclosetag = 4;
+    else
+      *rflags |= T_ITALIC;
+  }
+  else if(b != NULL) // b is the first
+  {
+    wopentag = 3;
+    begin = b;
+    end = strnstr(b, "</b>", size - (b - text));
+    nflags |= T_BOLD;
+    if(end != NULL)
+      wclosetag = 4;
+    else
+      *rflags |= T_BOLD;
+  }
+  else // no opening tag
+  {
+    if(flags & T_ITALIC) // we look for it
+      i = strnstr(text, "</i>", size);
+    if(flags & T_BOLD)
+      b = strnstr(text, "</b>", size);
+    if(i != NULL && (b == NULL || i < b))
+    {
+      wclosetag = 4;
+      begin = text;
+      end = i;
+      nflags |= T_ITALIC;
+      *rflags &= ~T_ITALIC;
+    }
+    else if(b != NULL)
+    {
+      wclosetag = 4;
+      begin = text;
+      end = b;
+      nflags |= T_BOLD;
+      *rflags &= ~T_BOLD;
+    }
   }
   
+  enum t_type dummy;
+  if(begin != NULL && end != NULL)
+  {
+    // before
+    width =  drawText(env, text, begin - text, x, y, flags, &dummy, draw);
+    // middle
+    width += drawText(env, begin + wopentag, end - begin - wopentag,
+      x + width, y, nflags, &dummy, draw);
+    // after
+    width += drawText(env, end + wclosetag, size - (end + wclosetag - begin),
+      x + width, y, flags, rflags, draw);
+  }
+  else if(begin != NULL)
+  {
+    // before
+    width =  drawText(env, text, begin - text, x, y, flags, &dummy, draw);
+    // middle
+    width += drawText(env, begin + wopentag, size - (begin + wopentag - text),
+      x + width, y, nflags, &dummy, draw);
+    *rflags |= dummy;
+  }
+  else
+  {
+    int font_direction, font_ascent, font_descent;
+    XCharStruct text_structure;
+    XTextExtents(getFont(env, flags), text, size,
+                 &font_direction, &font_ascent, &font_descent,
+                 &text_structure);
+    width = text_structure.width;
+    
+    if(draw)
+    {
+      XSetFont(env.d, env.gc, getFont(env, flags)->fid);
+      XDrawString(env.d, env.w, env.gc, x, y, text, size);
+    }
+  }
+  
+  return width;
+}
+
+// return a the max width
+int printLines(struct printerEnv env, char *text, int gap, int y,
+  enum t_type flags, int draw)
+{
   char *next;
   int size;
+  int width;
   
   next = strchr(text, '\n');
   if(next == NULL)
@@ -122,30 +298,53 @@ int printLines(struct printerEnv env, char *text, int gap,
   }
   
   // compute the size of the text
-  int font_direction, font_ascent, font_descent, text_y;
-  XCharStruct text_structure;
-  XTextExtents(env.fontinfo, text, size,
-               &font_direction, &font_ascent, &font_descent,
-               &text_structure);
+  enum t_type dummy;
+  int tmp = drawText(env, text, size, 0, 0, flags, &dummy, 0);
   
-  // print next line, and this one above
-  if(text_structure.width > width)
-    width = text_structure.width;
+  // print line
+  if(draw)
+    drawText(env, text, size, (env.width - tmp)/2, y, flags, &flags, 1);
+  else
+    flags = dummy;
   
-  text_y = printLines(env, next, gap, width,
-    height + text_structure.ascent + text_structure.descent + gap, padding);
-  text_y -= text_structure.descent;
+  // print next lines
+  if(*next != '\0')
+    width = printLines(env, next, gap, y + env.maxascent + env.maxdescent + gap,
+      flags, draw);
   
-  XDrawString(env.d, env.w, env.gc, (env.width - text_structure.width)/2,
-    text_y, text, size);
-  
-  return text_y - text_structure.ascent - gap;
+  if(tmp > width)
+    return tmp;
+  return width;
 }
 
-void printerShow(struct printerEnv env, char* text)
+void printerShow(struct printerEnv env, char* text, enum t_type font)
 {
+  int gap = 5, padding = 5;
+  int nlines = 1,
+      width, height;
+  char *p = text;
+  while((p = strchr(p, '\n')) != NULL)
+  {
+    p++;
+    if(*p == '\0')
+      break;
+    nlines++;
+  }
+  
   XClearWindow(env.d, env.w);
-  printLines(env, text, 5, 0, 0, 5);
+  //  max width
+  width = printLines(env, text, gap, 0, font, 0);
+  height = nlines * (env.maxascent + env.maxdescent + gap) - gap;
+  
+  // frame
+  XSetForeground(env.d, env.gc, env.color_background);
+  XFillRectangle(env.d, env.w, env.gc, (env.width - width)/2 - padding,
+    env.height - 2*padding - height, width + 2*padding, height + 2*padding);
+  XSetForeground(env.d, env.gc, env.color_text);
+  
+  // text
+  printLines(env, text, gap,
+    env.height - padding - height + env.maxascent, font, 1);
   XFlush(env.d);
 }
 

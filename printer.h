@@ -27,17 +27,22 @@ struct printerEnv
   int s;
   Window w;
   GC gc;
-  XFontStruct *fontinfo;
+  XFontStruct *fontinfo;    // regular
+  XFontStruct *fontinfo_i;  // italic
+  XFontStruct *fontinfo_b;  // bold
+  XFontStruct *fontinfo_bi; // both
+  int maxascent, maxdescent;
   int width, height;
   unsigned long color_background, color_text;
 };
 
+enum t_type {T_ITALIC = 1, T_BOLD = 2};
 
 // if width < 0 the window will be as larger as possible
 struct printerEnv printerOpenWindow(int width, int height, int padding_bottom);
 void printerCloseWindow(struct printerEnv env);
 
-void printerShow(struct printerEnv env, char* text);
+void printerShow(struct printerEnv env, char* text, enum t_type font);
 void printerClean(struct printerEnv env);
 
 #endif
