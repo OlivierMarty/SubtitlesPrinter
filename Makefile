@@ -19,7 +19,7 @@
 SRCS=time.c parser.c printer.c main.c
 CC=gcc
 CFLAGS=
-LIBS=$(shell pkg-config --cflags --libs x11)
+LIBS=$(shell pkg-config --cflags --libs x11) -lrt
 
 OBJS = $(SRCS:.c=.o)
 
