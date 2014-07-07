@@ -28,7 +28,7 @@ To quit, press CTRL+C in the terminal.
 
 ### Optional arguments
 
-It is possible to skip x seconds, or to change the delay before starting. For details see
+It is possible to skip x seconds, or to change the delay before starting. For other parameters and details see
 ```bash
 ./subtitlesPrinter -h
 ```

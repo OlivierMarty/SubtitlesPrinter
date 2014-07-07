@@ -43,8 +43,8 @@ char *strnstr(const char *s, const char *find, size_t slen)
 	return ((char *)s);
 }
 
-
-struct printerEnv printerOpenWindow(int width, int height, int padding_bottom)
+struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
+  char *font, char *font_i, char *font_b, char *font_bi)
 {
   struct printerEnv env;
 
@@ -86,15 +86,19 @@ struct printerEnv printerOpenWindow(int width, int height, int padding_bottom)
   env.height = height;
   env.w = XCreateWindow(env.d, RootWindow(env.d, env.s),
     (RootAttr.width - env.width)/2,
-    RootAttr.height - env.height - padding_bottom, env.width, env.height, 0,
+    RootAttr.height - env.height - margin_bottom, env.width, env.height, 0,
     vinfo.depth, InputOutput, vinfo.visual,
     CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attr);
   
   // setting fonts
-  char fontname[]    = "*x24*",//"*charter-medium-r-normal*",
-       fontname_i[]  = "*charter-medium-i-normal*",
-       fontname_b[]  = "*charter-bold-r-normal*",
-       fontname_bi[] = "*charter-bold-i-normal*";
+  char *fontname    = "*x24*",//"*charter-medium-r-normal*",
+       *fontname_i  = "*charter-medium-i-normal*",
+       *fontname_b  = "*charter-bold-r-normal*",
+       *fontname_bi = "*charter-bold-i-normal*";
+  fontname    = (font == NULL)    ? fontname    : font;
+  fontname_i  = (font_i == NULL)  ? fontname_i  : font_i;
+  fontname_b  = (font_b == NULL)  ? fontname_b  : font_b;
+  fontname_bi = (font_bi == NULL) ? fontname_bi : font_bi;
   env.fontinfo    = XLoadQueryFont(env.d, fontname);
   env.fontinfo_i  = XLoadQueryFont(env.d, fontname_i);
   env.fontinfo_b  = XLoadQueryFont(env.d, fontname_b);

@@ -21,34 +21,69 @@
 #include "printer.h"
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 void displayUsage(char *name)
 {
-  printf("Usage : %s file.srt [-s shift] [-d delay] [-h]\n", name);
-  printf("  -s x : skip the first x seconds\n");
-  printf("  -d x : wait x seconds before starting\n");
-  printf("  -h   : display this help and exit\n");
+  printf("Usage : %s file.srt\n", name);
+  printf("Options :\n");
+  printf("  -s sec\t: skip the first x seconds\n");
+  printf("  -d sec\t: wait x seconds before starting (default : 5)\n");
+  printf("  -w px\t\t: width of the window\n");
+  printf("  -H px\t\t: height of the window\n");
+  printf("  -m px\t\t: margin with the bottom of the screen\n");
+  printf("  -f fontname\t: name of the font to use\n");
+  printf("  -i fontname\t: name of the italic font to use\n");
+  printf("  -b fontname\t: name of the bold font to use\n");
+  printf("  -j fontname\t: name of the bold and italic font to use\n");
+  printf("  -h\t\t: display this help and exit\n");
 }
 
 int main(int argc, char **argv)
 {
-  int i, shift = 0, delay = 5;
+  int i, shift = 0, delay = 5, width = -1, height = 240, margin_bottom = 50;
+  char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
   FILE *f = NULL;
   
   // parse arguments
   int c;
-  while((c = getopt (argc, argv, "hs:d:")) != -1)
+  while((c = getopt (argc, argv, "s:d:w:H:m:f:i:b:j:h")) != -1)
     switch(c)
     {
-      case 'h':
-        displayUsage(argv[0]);
-        return 0;
       case 's':
         shift = atoi(optarg);
         break;
       case 'd':
         delay = atoi(optarg);
         break;
+      case 'w':
+        width = atoi(optarg);
+        break;
+      case 'H':
+        height = atoi(optarg);
+        break;
+      case 'm':
+        margin_bottom = atoi(optarg);
+        break;
+      case 'f':
+        font = malloc(strlen(optarg)+1);
+        strcpy(font, optarg);
+        break;
+      case 'i':
+        font_i = malloc(strlen(optarg)+1);
+        strcpy(font_i, optarg);
+        break;
+      case 'b':
+        font_b = malloc(strlen(optarg)+1);
+        strcpy(font_b, optarg);
+        break;
+      case 'j':
+        font_bi = malloc(strlen(optarg)+1);
+        strcpy(font_bi, optarg);
+        break;
+      case 'h':
+        displayUsage(argv[0]);
+        return 0;
       //case '?':
       default:
         return 1;
@@ -69,7 +104,8 @@ int main(int argc, char **argv)
   }
   
   // open the window
-  struct printerEnv penv = printerOpenWindow(-1, 240, 0);
+  struct printerEnv penv = printerOpenWindow(width, height, margin_bottom,
+    font, font_i, font_b, font_bi);
   
   // show a counter before start the clock
   for(i = delay; i > 0; i--)
