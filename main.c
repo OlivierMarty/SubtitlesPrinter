@@ -56,7 +56,7 @@ int main(int argc, char **argv)
   
   if(optind >= argc)
   {
-    fprintf(stderr, "Missing filename.\n", argv[0]);
+    fprintf(stderr, "Missing filename.\n");
     displayUsage(argv[0]);
     return 1;
   }
