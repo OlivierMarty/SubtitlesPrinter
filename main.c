@@ -20,19 +20,48 @@
 #include "time.h"
 #include "printer.h"
 #include <stdlib.h>
+#include <unistd.h>
+
+void displayUsage(char *name)
+{
+  printf("Usage : %s file.srt [-s shift] [-d delay] [-h]\n", name);
+  printf("  -s x : skip the first x seconds\n");
+  printf("  -d x : wait x seconds before starting\n");
+  printf("  -h   : display this help and exit\n");
+}
 
 int main(int argc, char **argv)
 {
-  int i;
-  FILE *f= NULL;
+  int i, shift = 0, delay = 5;
+  FILE *f = NULL;
   
-  if(argc < 2)
+  // parse arguments
+  int c;
+  while((c = getopt (argc, argv, "hs:d:")) != -1)
+    switch(c)
+    {
+      case 'h':
+        displayUsage(argv[0]);
+        return 0;
+      case 's':
+        shift = atoi(optarg);
+        break;
+      case 'd':
+        delay = atoi(optarg);
+        break;
+      //case '?':
+      default:
+        return 1;
+    }
+  
+  if(optind >= argc)
   {
-    fprintf(stderr, "Usage : ./subtitlesPrinter file.srt [shift in seconds [waiting time in seconds]]\n");
+    fprintf(stderr, "Missing filename.\n", argv[0]);
+    displayUsage(argv[0]);
     return 1;
   }
   
-  f = fopen(argv[1], "r");
+  f = fopen(argv[optind], "r");
   if(f == NULL)
   {
     perror("fopen()");
@@ -43,7 +72,7 @@ int main(int argc, char **argv)
   struct printerEnv penv = printerOpenWindow(-1, 240, 0);
   
   // show a counter before start the clock
-  for(i = (argc > 3) ? atoi(argv[3]) : 5; i > 0; i--)
+  for(i = delay; i > 0; i--)
   {
     char t[16];
     sprintf(t, "%d...\n", i);
@@ -53,7 +82,7 @@ int main(int argc, char **argv)
   }
   printf("0 !\n");
   printerClean(penv);
-  timeInitialize((argc > 2) ? -atoi(argv[2]) : 0);
+  timeInitialize(-shift);
   
   struct SubtitleLine sline;
   int id = 0;
