@@ -28,7 +28,7 @@ int main(int argc, char **argv)
   
   if(argc < 2)
   {
-    fprintf(stderr, "Usage : subtitles file.srt [shift in seconds [waiting time in seconds]]\n");
+    fprintf(stderr, "Usage : ./subtitlesPrinter file.srt [shift in seconds [waiting time in seconds]]\n");
     return 1;
   }
   
