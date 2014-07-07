@@ -1,5 +1,5 @@
 #
-#  Copyright (C) 2014  Olivier Marty <olivier.marty.m@gmail.com>
+#  Copyright (C) 2014  Olivier Marty <olivier.marty.m at gmail.com>
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
