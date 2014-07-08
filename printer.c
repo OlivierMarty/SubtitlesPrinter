@@ -49,7 +49,7 @@ void loadFont(struct printerEnv *env, XFontStruct **font, char* fontname)
   *font = XLoadQueryFont(env->d, fontname);
   if(!*font)
   {
-    fprintf (stderr, "unable to load font %s\n", fontname);
+    fprintf (stderr, "unable to load font %s - using normal font\n", fontname);
     *font = env->fontinfo;
   }
   else
@@ -108,7 +108,9 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
     CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attr);
   
   // setting fonts
-  char *fontname = (font == NULL) ? "*x24*" : font;
+  char *fontname = (font == NULL) ?
+    "-bitstream-bitstream charter-medium-r-normal--*-280-100-100-p-*-iso8859-1"
+    : font;
   env.fontinfo    = XLoadQueryFont(env.d, fontname);
   if(!env.fontinfo)
   {
@@ -117,11 +119,14 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
   }
   env.maxascent = env.fontinfo->ascent;
   env.maxdescent = env.fontinfo->descent;
-  loadFont(&env, &env.fontinfo_i, (font_i == NULL) ? "*charter-medium-i-normal*"
+  loadFont(&env, &env.fontinfo_i, (font_i == NULL) ?
+    "-bitstream-bitstream charter-medium-i-normal--*-280-100-100-p-*-iso8859-1"
     : font_i);
-  loadFont(&env, &env.fontinfo_b, (font_b == NULL) ? "*charter-bold-r-normal*"
+  loadFont(&env, &env.fontinfo_b, (font_b == NULL) ?
+    "-bitstream-bitstream charter-bold-r-normal--*-280-100-100-p-*-iso8859-1"
     : font_b);
-  loadFont(&env, &env.fontinfo_bi, (font_bi == NULL) ? "*charter-bold-i-normal*"
+  loadFont(&env, &env.fontinfo_bi, (font_bi == NULL) ?
+    "-bitstream-bitstream charter-bold-i-normal--*-280-100-100-p-*-iso8859-1"
     : font_bi);
   
   // create GC
