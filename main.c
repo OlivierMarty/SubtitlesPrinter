@@ -127,6 +127,7 @@ int main(int argc, char **argv)
     id = next(f, id+1, &sline);
     if(!timeSleepUntil(sline.begin)) // no error and in the future
     {
+      printf("%ds\n", sline.begin.tv_sec);
       // show
       printf("%s\n", sline.text);
       printerShow(penv, sline.text, 0);
