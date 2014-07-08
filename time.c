@@ -22,7 +22,7 @@
 
 int timeSleep(struct timespec t)
 {
-  int r;
+  int r = -2;
   if(t.tv_sec >= 0)
   {
     do

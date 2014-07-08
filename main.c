@@ -125,17 +125,23 @@ int main(int argc, char **argv)
   while(!feof(f))
   {
     id = next(f, id+1, &sline);
-    timeSleepUntil(sline.begin);
-    
-    // show
-    printf("%s\n", sline.text);
-    printerShow(penv, sline.text, 0);
-    
-    // hide
-    timeSleepUntil(sline.end);
-    // TODO manage when the next subtitle appear before
-    printf("\n");
-    printerClean(penv);
+    if(!timeSleepUntil(sline.begin)) // no error and in the future
+    {
+      // show
+      printf("%s\n", sline.text);
+      printerShow(penv, sline.text, 0);
+      
+      // hide
+      timeSleepUntil(sline.end);
+      // TODO manage when the next subtitle appear before
+      printf("\n");
+      printerClean(penv);
+    }
+    else
+    {
+      printf("skipped :\n");
+      printf("%s\n", sline.text);
+    }
   }
   
   printerCloseWindow(penv);
