@@ -30,6 +30,8 @@ void displayUsage(char *name)
   printf("  -s sec\t: skip the first x seconds\n");
   printf("  -d sec\t: wait x seconds before starting (default : 5)\n");
   printf("  -m px\t\t: margin with the bottom of the screen\n");
+  printf("  -p px\t\t: padding of the box\n");
+  printf("  -g px\t\t: gap between two lines\n");
   printf("  -f fontname\t: name of the font to use\n");
   printf("  -i fontname\t: name of the italic font to use\n");
   printf("  -b fontname\t: name of the bold font to use\n");
@@ -39,13 +41,13 @@ void displayUsage(char *name)
 
 int main(int argc, char **argv)
 {
-  int i, shift = 0, delay = 5, margin_bottom = 50;
+  int i, shift = 0, delay = 5, margin_bottom = 50, padding = 5, gap = 5;
   char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
   FILE *f = NULL;
   
   // parse arguments
   int c;
-  while((c = getopt (argc, argv, "s:d:m:f:i:b:j:h")) != -1)
+  while((c = getopt (argc, argv, "s:d:m:p:g:f:i:b:j:h")) != -1)
     switch(c)
     {
       case 's':
@@ -56,6 +58,12 @@ int main(int argc, char **argv)
         break;
       case 'm':
         margin_bottom = atoi(optarg);
+        break;
+      case 'p':
+        padding = atoi(optarg);
+        break;
+      case 'g':
+        gap = atoi(optarg);
         break;
       case 'f':
         font = malloc(strlen(optarg)+1);
@@ -96,8 +104,12 @@ int main(int argc, char **argv)
   }
   
   // open the window
-  struct printerEnv penv = printerOpenWindow(margin_bottom, font, font_i,
-    font_b, font_bi);
+  struct printerEnv penv = printerOpenWindow(font, font_i, font_b, font_bi);
+  
+  // set attributes
+  penv.margin_bottom = margin_bottom;
+  penv.padding = padding;
+  penv.gap = gap;
   
   // show a counter before start the clock
   for(i = delay; i > 0; i--)
