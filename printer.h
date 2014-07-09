@@ -41,7 +41,6 @@ struct printerEnv
 
 enum t_type {T_ITALIC = 1, T_BOLD = 2};
 
-// if width < 0 the window will be as larger as possible
 struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   char *font_bi);
 void printerCloseWindow(struct printerEnv env);
