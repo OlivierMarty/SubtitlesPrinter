@@ -95,8 +95,8 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
   XParseColor(env.d, attr.colormap, "#222222", &tmp);
   XAllocColor(env.d, attr.colormap, &tmp);
   env.color_background = tmp.pixel;
-  //env.color_text = -1;
-  //env.color_background = (100 * 256 + 100) * 256 + 100;
+  //unsigned short r = 34, g = 34, b = 34, a = 192; // TODO where is the doc ?
+  //env.color_background = a*256*256*256 + r*256*256 + g*256 + b;
   
   // create the window
   env.width = (width < 0) ? RootAttr.width : width;
