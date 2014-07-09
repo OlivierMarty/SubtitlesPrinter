@@ -30,9 +30,9 @@ void displayUsage(char *name)
   printf("  -s sec\t: skip the first x seconds\n");
   printf("  -d sec\t: wait x seconds before starting (default : 5)\n");
   printf("  -t x\t\t: time factor x1000\n");
-  printf("  -w px\t\t: width of the window\n");
-  printf("  -H px\t\t: height of the window\n");
   printf("  -m px\t\t: margin with the bottom of the screen\n");
+  printf("  -p px\t\t: padding of the box\n");
+  printf("  -g px\t\t: gap between two lines\n");
   printf("  -f fontname\t: name of the font to use\n");
   printf("  -i fontname\t: name of the italic font to use\n");
   printf("  -b fontname\t: name of the bold font to use\n");
@@ -42,15 +42,14 @@ void displayUsage(char *name)
 
 int main(int argc, char **argv)
 {
-  int i, shift = 0, delay = 5, width = -1, height = 240, margin_bottom = 50;
+  int i, shift = 0, delay = 5, margin_bottom = 50, padding = 5, gap = 5;
   float factor = 1.0;
-    
   char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
   FILE *f = NULL;
   
   // parse arguments
   int c;
-  while((c = getopt (argc, argv, "s:d:t:w:H:m:f:i:b:j:h")) != -1)
+  while((c = getopt (argc, argv, "s:d:t:m:p:g:f:i:b:j:h")) != -1)
     switch(c)
     {
       case 's':
@@ -62,14 +61,14 @@ int main(int argc, char **argv)
       case 't':
         factor = (float)atoi(optarg)/1000;
         break;
-      case 'w':
-        width = atoi(optarg);
-        break;
-      case 'H':
-        height = atoi(optarg);
-        break;
       case 'm':
         margin_bottom = atoi(optarg);
+        break;
+      case 'p':
+        padding = atoi(optarg);
+        break;
+      case 'g':
+        gap = atoi(optarg);
         break;
       case 'f':
         font = malloc(strlen(optarg)+1);
@@ -110,8 +109,12 @@ int main(int argc, char **argv)
   }
   
   // open the window
-  struct printerEnv penv = printerOpenWindow(width, height, margin_bottom,
-    font, font_i, font_b, font_bi);
+  struct printerEnv penv = printerOpenWindow(font, font_i, font_b, font_bi);
+  
+  // set attributes
+  penv.margin_bottom = margin_bottom;
+  penv.padding = padding;
+  penv.gap = gap;
   
   // show a counter before start the clock
   for(i = delay; i > 0; i--)
@@ -119,7 +122,7 @@ int main(int argc, char **argv)
     char t[16];
     sprintf(t, "%d...\n", i);
     printf("%s", t);
-    printerShow(penv, t, T_ITALIC);
+    printerShow(&penv, t, T_ITALIC);
     sleep(1);
   }
   printf("0 !\n");
@@ -131,12 +134,14 @@ int main(int argc, char **argv)
   while(!feof(f))
   {
     id = next(f, id+1, &sline);
-    if(!timeSleepUntil(timeFactor(sline.begin, factor))) // no error and in the future
+    if(timeInFuture(timeFactor(sline.end, factor)))
     {
+      timeSleepUntil(timeFactor(sline.begin, factor));
+      
       printf("%ds\n", sline.begin.tv_sec);
       // show
       printf("%s\n", sline.text);
-      printerShow(penv, sline.text, 0);
+      printerShow(&penv, sline.text, 0);
       
       // hide
       timeSleepUntil(timeFactor(sline.end, factor));

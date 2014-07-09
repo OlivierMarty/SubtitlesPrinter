@@ -33,17 +33,20 @@ struct printerEnv
   XFontStruct *fontinfo_bi; // both
   int maxascent, maxdescent;
   int width, height;
+  int padding, gap;
+  int root_width, root_height;
+  int margin_bottom;
   unsigned long color_background, color_text;
 };
 
 enum t_type {T_ITALIC = 1, T_BOLD = 2};
 
 // if width < 0 the window will be as larger as possible
-struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
-  char *font, char *font_i, char *font_b, char *font_bi);
+struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
+  char *font_bi);
 void printerCloseWindow(struct printerEnv env);
 
-void printerShow(struct printerEnv env, char* text, enum t_type font);
+void printerShow(struct printerEnv *env, char* text, enum t_type font);
 void printerClean(struct printerEnv env);
 
 #endif

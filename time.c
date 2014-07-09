@@ -96,3 +96,10 @@ struct timespec timeCreate(time_t s, long ns)
   return r;
 }
 
+int timeInFuture(struct timespec t)
+{
+  struct timespec tmp = timeGetRelative();
+  tmp = timeDiff(t, tmp);
+  return tmp.tv_sec >= 0;
+}
+

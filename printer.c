@@ -61,8 +61,8 @@ void loadFont(struct printerEnv *env, XFontStruct **font, char* fontname)
   }
 }
 
-struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
-  char *font, char *font_i, char *font_b, char *font_bi)
+struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
+  char *font_bi)
 {
   struct printerEnv env;
 
@@ -80,6 +80,8 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
   // size of the screen
   XWindowAttributes RootAttr;
   XGetWindowAttributes(env.d, RootWindow(env.d, env.s), &RootAttr);
+  env.root_width = RootAttr.width;
+  env.root_height = RootAttr.height;
   
   // set window attributes
   XSetWindowAttributes attr;
@@ -95,16 +97,14 @@ struct printerEnv printerOpenWindow(int width, int height, int margin_bottom,
   XParseColor(env.d, attr.colormap, "#222222", &tmp);
   XAllocColor(env.d, attr.colormap, &tmp);
   env.color_background = tmp.pixel;
-  //env.color_text = -1;
-  //env.color_background = (100 * 256 + 100) * 256 + 100;
+  //unsigned short r = 34, g = 34, b = 34, a = 192; // TODO where is the doc ?
+  //env.color_background = a*256*256*256 + r*256*256 + g*256 + b;
   
   // create the window
-  env.width = (width < 0) ? RootAttr.width : width;
-  env.height = height;
-  env.w = XCreateWindow(env.d, RootWindow(env.d, env.s),
-    (RootAttr.width - env.width)/2,
-    RootAttr.height - env.height - margin_bottom, env.width, env.height, 0,
-    vinfo.depth, InputOutput, vinfo.visual,
+  env.width = 1;
+  env.height = 1;
+  env.w = XCreateWindow(env.d, RootWindow(env.d, env.s), 0, 0, env.width,
+    env.height, 0, vinfo.depth, InputOutput, vinfo.visual,
     CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attr);
   
   // setting fonts
@@ -271,8 +271,8 @@ int drawText(struct printerEnv env, char *text, int size,
 }
 
 // return a the max width
-int printLines(struct printerEnv env, char *text, int gap, int y,
-  enum t_type flags, int draw)
+int printLines(struct printerEnv env, char *text, int y, enum t_type flags,
+  int draw)
 {
   char *next;
   int size;
@@ -304,19 +304,17 @@ int printLines(struct printerEnv env, char *text, int gap, int y,
   
   // print next lines
   if(*next != '\0')
-    width = printLines(env, next, gap, y + env.maxascent + env.maxdescent + gap,
-      flags, draw);
+    width = printLines(env, next, y + env.maxascent + env.maxdescent
+      + env.gap, flags, draw);
   
   if(tmp > width)
     return tmp;
   return width;
 }
 
-void printerShow(struct printerEnv env, char* text, enum t_type font)
+void printerShow(struct printerEnv *env, char* text, enum t_type font)
 {
-  int gap = 5, padding = 5;
-  int nlines = 1,
-      width, height;
+  int nlines = 1;
   char *p = text;
   while((p = strchr(p, '\n')) != NULL)
   {
@@ -325,22 +323,25 @@ void printerShow(struct printerEnv env, char* text, enum t_type font)
       break;
     nlines++;
   }
+  //  width and height
+  env->width = printLines(*env, text, 0, font, 0) + 2 * env->padding;
+  env->height = nlines * (env->maxascent + env->maxdescent + env->gap)
+    - env->gap + 2 * env->padding;
   
-  XClearWindow(env.d, env.w);
-  //  max width
-  width = printLines(env, text, gap, 0, font, 0);
-  height = nlines * (env.maxascent + env.maxdescent + gap) - gap;
+  XClearWindow(env->d, env->w);
+  
+  XMoveResizeWindow(env->d, env->w, (env->root_width - env->width)/2,
+    env->root_height - env->margin_bottom - env->height, env->width,
+    env->height);
   
   // frame
-  XSetForeground(env.d, env.gc, env.color_background);
-  XFillRectangle(env.d, env.w, env.gc, (env.width - width)/2 - padding,
-    env.height - 2*padding - height, width + 2*padding, height + 2*padding);
-  XSetForeground(env.d, env.gc, env.color_text);
+  XSetForeground(env->d, env->gc, env->color_background);
+  XFillRectangle(env->d, env->w, env->gc, 0, 0, env->width, env->height);
+  XSetForeground(env->d, env->gc, env->color_text);
   
   // text
-  printLines(env, text, gap,
-    env.height - padding - height + env.maxascent, font, 1);
-  XFlush(env.d);
+  printLines(*env, text, env->padding + env->maxascent, font, 1);
+  XFlush(env->d);
 }
 
 void printerClean(struct printerEnv env)
