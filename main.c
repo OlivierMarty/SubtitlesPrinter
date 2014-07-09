@@ -129,8 +129,10 @@ int main(int argc, char **argv)
   while(!feof(f))
   {
     id = next(f, id+1, &sline);
-    if(!timeSleepUntil(sline.begin)) // no error and in the future
+    if(timeInFuture(sline.end))
     {
+      timeSleepUntil(sline.begin);
+      
       printf("%ds\n", sline.begin.tv_sec);
       // show
       printf("%s\n", sline.text);

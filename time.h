@@ -27,6 +27,7 @@ void timeInitialize(int rel); // add rel seconds to the clock
 mytime timeGetRelative();
 // return -2 if t is in the past
 int timeSleepUntil(mytime t);
+int timeInFuture(mytime t);
 
 mytime timeCreate(time_t s, long ns);
 
