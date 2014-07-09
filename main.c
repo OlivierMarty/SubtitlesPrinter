@@ -29,8 +29,6 @@ void displayUsage(char *name)
   printf("Options :\n");
   printf("  -s sec\t: skip the first x seconds\n");
   printf("  -d sec\t: wait x seconds before starting (default : 5)\n");
-  printf("  -w px\t\t: width of the window\n");
-  printf("  -H px\t\t: height of the window\n");
   printf("  -m px\t\t: margin with the bottom of the screen\n");
   printf("  -f fontname\t: name of the font to use\n");
   printf("  -i fontname\t: name of the italic font to use\n");
@@ -41,13 +39,13 @@ void displayUsage(char *name)
 
 int main(int argc, char **argv)
 {
-  int i, shift = 0, delay = 5, width = -1, height = 240, margin_bottom = 50;
+  int i, shift = 0, delay = 5, margin_bottom = 50;
   char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
   FILE *f = NULL;
   
   // parse arguments
   int c;
-  while((c = getopt (argc, argv, "s:d:w:H:m:f:i:b:j:h")) != -1)
+  while((c = getopt (argc, argv, "s:d:m:f:i:b:j:h")) != -1)
     switch(c)
     {
       case 's':
@@ -55,12 +53,6 @@ int main(int argc, char **argv)
         break;
       case 'd':
         delay = atoi(optarg);
-        break;
-      case 'w':
-        width = atoi(optarg);
-        break;
-      case 'H':
-        height = atoi(optarg);
         break;
       case 'm':
         margin_bottom = atoi(optarg);
@@ -104,8 +96,8 @@ int main(int argc, char **argv)
   }
   
   // open the window
-  struct printerEnv penv = printerOpenWindow(width, height, margin_bottom,
-    font, font_i, font_b, font_bi);
+  struct printerEnv penv = printerOpenWindow(margin_bottom, font, font_i,
+    font_b, font_bi);
   
   // show a counter before start the clock
   for(i = delay; i > 0; i--)
@@ -113,7 +105,7 @@ int main(int argc, char **argv)
     char t[16];
     sprintf(t, "%d...\n", i);
     printf("%s", t);
-    printerShow(penv, t, T_ITALIC);
+    printerShow(&penv, t, T_ITALIC);
     sleep(1);
   }
   printf("0 !\n");
@@ -130,7 +122,7 @@ int main(int argc, char **argv)
       printf("%ds\n", sline.begin.tv_sec);
       // show
       printf("%s\n", sline.text);
-      printerShow(penv, sline.text, 0);
+      printerShow(&penv, sline.text, 0);
       
       // hide
       timeSleepUntil(sline.end);
