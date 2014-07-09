@@ -29,6 +29,7 @@ void displayUsage(char *name)
   printf("Options :\n");
   printf("  -s sec\t: skip the first x seconds\n");
   printf("  -d sec\t: wait x seconds before starting (default : 5)\n");
+  printf("  -t x\t\t: time factor x1000\n");
   printf("  -w px\t\t: width of the window\n");
   printf("  -H px\t\t: height of the window\n");
   printf("  -m px\t\t: margin with the bottom of the screen\n");
@@ -42,12 +43,14 @@ void displayUsage(char *name)
 int main(int argc, char **argv)
 {
   int i, shift = 0, delay = 5, width = -1, height = 240, margin_bottom = 50;
+  float factor = 1.0;
+    
   char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
   FILE *f = NULL;
   
   // parse arguments
   int c;
-  while((c = getopt (argc, argv, "s:d:w:H:m:f:i:b:j:h")) != -1)
+  while((c = getopt (argc, argv, "s:d:t:w:H:m:f:i:b:j:h")) != -1)
     switch(c)
     {
       case 's':
@@ -55,6 +58,9 @@ int main(int argc, char **argv)
         break;
       case 'd':
         delay = atoi(optarg);
+        break;
+      case 't':
+        factor = (float)atoi(optarg)/1000;
         break;
       case 'w':
         width = atoi(optarg);
@@ -118,14 +124,14 @@ int main(int argc, char **argv)
   }
   printf("0 !\n");
   printerClean(penv);
-  timeInitialize(-shift);
+  timeInitialize(-factor*shift);
   
   struct SubtitleLine sline;
   int id = 0;
   while(!feof(f))
   {
     id = next(f, id+1, &sline);
-    if(!timeSleepUntil(sline.begin)) // no error and in the future
+    if(!timeSleepUntil(timeFactor(sline.begin, factor))) // no error and in the future
     {
       printf("%ds\n", sline.begin.tv_sec);
       // show
@@ -133,7 +139,7 @@ int main(int argc, char **argv)
       printerShow(penv, sline.text, 0);
       
       // hide
-      timeSleepUntil(sline.end);
+      timeSleepUntil(timeFactor(sline.end, factor));
       // TODO manage when the next subtitle appear before
       printf("\n");
       printerClean(penv);

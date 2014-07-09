@@ -33,6 +33,8 @@ mytime timeCreate(time_t s, long ns);
 // return -2 if t is negative
 int timeSleep(mytime t);
 mytime timeDiff(mytime a, mytime b);
+// f should be >= 0
+mytime timeFactor(mytime a, double f);
 
 #endif
 
