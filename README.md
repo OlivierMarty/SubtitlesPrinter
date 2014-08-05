@@ -15,13 +15,14 @@ Run in a terminal
 ```bash
 git clone https://github.com/OlivierMarty/SubtitlesPrinter.git
 make
+sudo make install
 ```
 
 ## Usage
 
-To show file.srt, run in the installation directory :
+To show file.srt, run in a terminal :
 ```bash
-./subtitlesPrinter file.srt
+subtitlesPrinter file.srt
 ```
 
 To quit, press CTRL+C in the terminal.
@@ -30,7 +31,7 @@ To quit, press CTRL+C in the terminal.
 
 It is possible to skip x seconds, or to change the delay before starting. For other parameters and details see
 ```bash
-./subtitlesPrinter -h
+subtitlesPrinter -h
 ```
 
 ## TODO
