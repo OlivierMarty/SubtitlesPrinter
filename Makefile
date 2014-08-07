@@ -20,19 +20,23 @@ SRCS=time.c parser.c printer.c main.c
 CC=gcc
 CFLAGS=
 LIBS=$(shell pkg-config --cflags --libs x11) -lrt
+INSTALL_DIR=/usr/local/bin
 
 OBJS = $(SRCS:.c=.o)
 
 default: subtitlesPrinter
 
 subtitlesPrinter: $(OBJS)
-	$(CC) -o subtitlesPrinter $^ $(CFLAGS) $(LIBS) 
+	$(CC) -o subtitlesPrinter $^ $(CFLAGS) $(LIBS)
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-.PHONY: clean default
+install: subtitlesPrinter
+	install --mode=755 subtitlesPrinter $(INSTALL_DIR)
+
+.PHONY: clean default install
 
 clean:
-	rm -f *.o
+	rm -f *.o subtitlesPrinter
 
