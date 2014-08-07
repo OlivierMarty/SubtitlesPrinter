@@ -35,7 +35,7 @@ subtitlesPrinter: $(OBJS)
 install: subtitlesPrinter
 	install --mode=755 subtitlesPrinter $(INSTALL_DIR)
 
-.PHONY: clean default
+.PHONY: clean default install
 
 clean:
 	rm -f *.o subtitlesPrinter
