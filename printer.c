@@ -147,10 +147,6 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   }
   */
   
-  // display the window
-  XMapWindow(env.d, env.w);
-  XFlush(env.d);
-  
   return env;
 }
 
@@ -316,6 +312,8 @@ void printerShow(struct printerEnv *env, char* text, enum t_type font)
 {
   int nlines = 1;
   char *p = text;
+  // remap the window
+  XMapWindow(env->d, env->w);
   while((p = strchr(p, '\n')) != NULL)
   {
     p++;
@@ -347,6 +345,7 @@ void printerShow(struct printerEnv *env, char* text, enum t_type font)
 void printerClean(struct printerEnv env)
 {
   XClearWindow(env.d, env.w);
+  XUnmapWindow(env.d, env.w);
   XFlush(env.d);
 }
 
