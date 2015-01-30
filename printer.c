@@ -22,6 +22,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+#include <X11/XKBlib.h>
 #include <string.h>
 
 char *strnstr(const char *s, const char *find, size_t slen)
@@ -136,16 +137,12 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   gr_values.background = XBlackPixel(env.d, env.s);
   env.gc = XCreateGC(env.d, env.w, GCFont | GCForeground, &gr_values);
   
+  // focused window (for keyboard)
+  int revert;
+  XGetInputFocus(env.d, &env.w_focused, &revert);
+  
   // event to be listened
-  //XSelectInput(env.d, env.w, ExposureMask | KeyPressMask);
-  /*
-  XEvent e;
-  while(XCheckWindowEvent(env.d, env.w, KeyPressMask, &e))
-  {
-    if(e.type == KeyPress && XLookupKeysym(&(e.xkey), 0) == XK_space)
-      printf("PAUSE\n");
-  }
-  */
+  XSelectInput(env.d, env.w_focused, KeyPressMask|FocusChangeMask);
   
   return env;
 }
@@ -349,3 +346,36 @@ void printerClean(struct printerEnv env)
   XFlush(env.d);
 }
 
+void manageEvent(struct printerEnv *env, void callback(struct printerEnv*,int,void*), void* callback_arg)
+{
+  XEvent event;
+  int r;
+  XComposeStatus comp;
+
+  while(XPending(env->d))
+  {
+    XNextEvent(env->d, &event);
+    switch(event.type)
+    {
+      case FocusOut:
+        XGetInputFocus(env->d, &env->w_focused, &r);
+        if(env->w_focused == PointerRoot)
+          env->w_focused = RootWindow(env->d, env->s); // TODO why ?
+        XSelectInput(env->d, env->w_focused, KeyPressMask|FocusChangeMask);
+        break;
+      
+      case KeyPress:
+        callback(env, (int)XkbKeycodeToKeysym(env->d, event.xkey.keycode, 0, event.xkey.state & ShiftMask ? 1 : 0), callback_arg);
+        break;
+      
+      default:
+        break;
+    }
+  }
+}
+
+void waitEvent(struct printerEnv *env)
+{
+  XEvent event;
+  XPeekEvent(env->d, &event);
+}

@@ -61,8 +61,11 @@ struct timespec timeFactor(struct timespec a, double f)
 }
 
 struct timespec begin;
+struct timespec tPause; // beginning of the pause
+int pause;
 void timeInitialize(int rel)
 {
+  pause = 0;
   if(clock_gettime(CLOCK_REALTIME, &begin) < 0)
   {
     perror("clock_gettime()");
@@ -73,6 +76,11 @@ void timeInitialize(int rel)
 
 struct timespec timeGetRelative()
 {
+  if(pause) {
+    printf("paused !\n");
+    return tPause;
+  }
+
   struct timespec r;
   if(clock_gettime(CLOCK_REALTIME, &r) < 0)
   {
@@ -103,3 +111,21 @@ int timeInFuture(struct timespec t)
   return tmp.tv_sec >= 0;
 }
 
+void timePause(int b)
+{
+  if(b)
+  {
+    tPause = timeGetRelative();
+    pause = 1;
+  }
+  else
+  {
+    pause = 0;
+    begin = timeDiff(begin, timeDiff(tPause, timeGetRelative()));
+  }
+}
+
+int timeIsPaused()
+{
+  return pause;
+}

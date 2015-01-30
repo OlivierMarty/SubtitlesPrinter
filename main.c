@@ -40,6 +40,25 @@ void displayUsage(char *name)
   printf("  -h\t\t: display this help and exit\n");
 }
 
+void callbackEvent(struct printerEnv* env, int key, void* a) {
+  if(key == ' ') {
+    // display a message
+    if(!timeIsPaused())
+      printerShow(env, "(paused - press space to resume)", 0);
+    else
+      printerClean(*env);
+    
+    // toggle pause
+    timePause(!timeIsPaused());
+    // if paused, wait for an event
+    while(timeIsPaused())
+    {
+      waitEvent(env);
+      manageEvent(env, callbackEvent, a);
+    }
+  }
+}
+
 int main(int argc, char **argv)
 {
   int i, shift = 0, delay = 5, margin_bottom = 50, padding = 5, gap = 5;
@@ -148,6 +167,7 @@ int main(int argc, char **argv)
       // TODO manage when the next subtitle appear before
       printf("\n");
       printerClean(penv);
+      manageEvent(&penv, callbackEvent, NULL);
     }
     else
     {

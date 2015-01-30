@@ -26,6 +26,7 @@ subtitlesPrinter file.srt
 ```
 
 To quit, press CTRL+C in the terminal.
+To pause and resume, press space anywhere (this does not work with all windows).
 
 ### Optional arguments
 
@@ -36,9 +37,8 @@ subtitlesPrinter -h
 
 ## TODO
 
-* Manage some evenements, like pause, shift...
+* Manage other evenements, like shift...
 * Support more type of file (with an extern library ?)
-* Use a larger, customizable font
 
 Every improvement is welcome !
 

@@ -26,6 +26,7 @@ struct printerEnv
   Display *d;
   int s;
   Window w;
+  Window w_focused;
   GC gc;
   XFontStruct *fontinfo;    // regular
   XFontStruct *fontinfo_i;  // italic
@@ -47,6 +48,9 @@ void printerCloseWindow(struct printerEnv env);
 
 void printerShow(struct printerEnv *env, char* text, enum t_type font);
 void printerClean(struct printerEnv env);
+
+void manageEvent(struct printerEnv *env, void callback(struct printerEnv*,int,void*), void* callback_arg);
+void waitEvent(struct printerEnv *env); // TODO plutot un arguement dans manageEvent qui déclenche une lecture bloquante
 
 #endif
 

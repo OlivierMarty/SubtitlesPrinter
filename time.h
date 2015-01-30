@@ -37,5 +37,8 @@ mytime timeDiff(mytime a, mytime b);
 // f should be >= 0
 mytime timeFactor(mytime a, double f);
 
+void timePause(int pause); // pause and resume the clock
+int timeIsPaused();
+
 #endif
 
