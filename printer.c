@@ -25,26 +25,6 @@
 #include <X11/XKBlib.h>
 #include <string.h>
 
-char *strnstr(const char *s, const char *find, size_t slen)
-{
-	char c, sc;
-	size_t len;
-
-	if ((c = *find++) != '\0') {
-		len = strlen(find);
-		do {
-			do {
-				if ((sc = *s++) == '\0' || slen-- < 1)
-					return (NULL);
-			} while (sc != c);
-			if (len > slen)
-				return (NULL);
-		} while (strncmp(s, find, len) != 0);
-		s--;
-	}
-	return ((char *)s);
-}
-
 void loadFont(struct printerEnv *env, XFontStruct **font, char* fontname)
 {
   *font = XLoadQueryFont(env->d, fontname);
@@ -163,165 +143,68 @@ XFontStruct* getFont(struct printerEnv env, enum t_type flags)
   return env.fontinfo;
 }
 
-// return the width of the text drawn
-// look for i and b html tags
-// bug when there is several i (or several v) nested
-// set in rflags the flags at the end of the text
-int drawText(struct printerEnv env, char *text, int size,
-  int x, int y, enum t_type flags, enum t_type *rflags, int draw)
+int drawTextRaw(struct printerEnv env, char *text, int size, enum t_type font,
+    int *x, int *y, int draw)
 {
-  char *i = strnstr(text, "<i>", size),
-       *b = strnstr(text, "<b>", size),
-       *begin = NULL, *end = NULL;
-  int  wopentag = 0, wclosetag = 0,
-       width;
-  enum t_type nflags = flags;
-  *rflags = flags;
-  if(i != NULL && (b == NULL || i < b)) // i is the first
-  {
-    wopentag = 3;
-    begin = i;
-    end = strnstr(i, "</i>", size - (i - text));
-    nflags |= T_ITALIC;
-    if(end != NULL)
-      wclosetag = 4;
-    else
-      *rflags |= T_ITALIC;
-  }
-  else if(b != NULL) // b is the first
-  {
-    wopentag = 3;
-    begin = b;
-    end = strnstr(b, "</b>", size - (b - text));
-    nflags |= T_BOLD;
-    if(end != NULL)
-      wclosetag = 4;
-    else
-      *rflags |= T_BOLD;
-  }
-  else // no opening tag
-  {
-    if(flags & T_ITALIC) // we look for it
-      i = strnstr(text, "</i>", size);
-    if(flags & T_BOLD)
-      b = strnstr(text, "</b>", size);
-    if(i != NULL && (b == NULL || i < b))
-    {
-      wclosetag = 4;
-      begin = text;
-      end = i;
-      nflags |= T_ITALIC;
-      *rflags &= ~T_ITALIC;
-    }
-    else if(b != NULL)
-    {
-      wclosetag = 4;
-      begin = text;
-      end = b;
-      nflags |= T_BOLD;
-      *rflags &= ~T_BOLD;
-    }
-  }
-  
-  enum t_type dummy;
-  if(begin != NULL && end != NULL)
-  {
-    // before
-    width =  drawText(env, text, begin - text, x, y, flags, &dummy, draw);
-    // middle
-    width += drawText(env, begin + wopentag, end - begin - wopentag,
-      x + width, y, nflags, &dummy, draw);
-    // after
-    width += drawText(env, end + wclosetag, size - (end + wclosetag - begin),
-      x + width, y, flags, rflags, draw);
-  }
-  else if(begin != NULL)
-  {
-    // before
-    width =  drawText(env, text, begin - text, x, y, flags, &dummy, draw);
-    // middle
-    width += drawText(env, begin + wopentag, size - (begin + wopentag - text),
-      x + width, y, nflags, &dummy, draw);
-    *rflags |= dummy;
-  }
-  else
-  {
-    int font_direction, font_ascent, font_descent;
-    XCharStruct text_structure;
-    XTextExtents(getFont(env, flags), text, size,
-                 &font_direction, &font_ascent, &font_descent,
-                 &text_structure);
-    width = text_structure.width;
-    
-    if(draw)
-    {
-      XSetFont(env.d, env.gc, getFont(env, flags)->fid);
-      XDrawString(env.d, env.w, env.gc, x, y, text, size);
-    }
-  }
-  
-  return width;
-}
-
-// return a the max width
-int printLines(struct printerEnv env, char *text, int y, enum t_type flags,
-  int draw)
-{
-  char *next;
-  int size;
-  int width = 0;
-  
-  next = strchr(text, '\n');
-  if(next == NULL)
-  {
-    size = strlen(text);
-    next = text + size;
-  }
-  else
-  {
-    size = next-text;
-    if(*(next-1) == '\r')
-      size--; // hide this character
-    next++; // forget \n
-  }
-  
-  // compute the size of the text
-  enum t_type dummy;
-  int tmp = drawText(env, text, size, 0, 0, flags, &dummy, 0);
-  
-  // print line
+  int font_direction, font_ascent, font_descent;
+  XCharStruct text_structure;
+  XTextExtents(getFont(env, font), text, size,
+               &font_direction, &font_ascent, &font_descent,
+               &text_structure);
   if(draw)
-    drawText(env, text, size, (env.width - tmp)/2, y, flags, &flags, 1);
-  else
-    flags = dummy;
-  
-  // print next lines
-  if(*next != '\0')
-    width = printLines(env, next, y + env.maxascent + env.maxdescent
-      + env.gap, flags, draw);
-  
-  if(tmp > width)
-    return tmp;
-  return width;
+  {
+    XSetFont(env.d, env.gc, getFont(env, font)->fid);
+    XDrawString(env.d, env.w, env.gc, *x, *y, text, size);
+  }
+  *x += text_structure.width;
 }
 
-void printerShow(struct printerEnv *env, char* text, enum t_type font)
+int drawTextLines(struct printerEnv env, char *text, int size, enum t_type font,
+    int *x, int *y, int *maxw, int draw)
 {
-  int nlines = 1;
-  char *p = text;
+  char *nl = memchr(text, '\n', size);
+  if(nl == NULL)
+  {
+    drawTextRaw(env, text, size, font, x, y, draw);
+    if(*x > *maxw)
+      *maxw = *x;
+  }
+  else
+  {
+    drawTextRaw(env, text, nl-text, font, x, y, draw);
+    if(*x > *maxw)
+      *maxw = *x;
+    *x = env.padding;
+    *y += env.maxascent + env.maxdescent + env.gap;
+    drawTextLines(env, nl+1, text-nl-1+size, font, x, y, maxw, draw);
+  }
+}
+
+// update x and y
+int drawText(struct printerEnv env, struct richText *rt,
+    int *x, int *y, int *maxw, int draw)
+{
+  if(rt->left != NULL && rt->right != NULL)
+  {
+    drawText(env, rt->left, x, y, maxw, draw);
+    drawText(env, rt->right, x, y, maxw, draw);
+  }
+  else
+    drawTextLines(env, rt->pos, rt->size, rt->type, x, y, maxw, draw);
+}
+
+void printerShow(struct printerEnv *env, struct richText *rt)
+{
+  int x, y;
   // remap the window
   XMapWindow(env->d, env->w);
-  while((p = strchr(p, '\n')) != NULL)
-  {
-    p++;
-    if(*p == '\0')
-      break;
-    nlines++;
-  }
   //  width and height
-  env->width = printLines(*env, text, 0, font, 0) + 2 * env->padding;
-  env->height = nlines * (env->maxascent + env->maxdescent + env->gap)
-    - env->gap + 2 * env->padding;
+  x = env->padding;
+  env->width = x;
+  env->height = env->padding;
+  drawText(*env, rt, &x, &env->height, &env->width, 0);
+  env->width += env->padding;
+  env->height += env->padding;
   
   XClearWindow(env->d, env->w);
   
@@ -335,7 +218,9 @@ void printerShow(struct printerEnv *env, char* text, enum t_type font)
   XSetForeground(env->d, env->gc, env->color_text);
   
   // text
-  printLines(*env, text, env->padding + env->maxascent, font, 1);
+  x = env->padding; // TODO avant c'était centré
+  y = env->padding + env->maxascent;
+  drawText(*env, rt, &x, &y, &x, 1);
   XFlush(env->d);
 }
 

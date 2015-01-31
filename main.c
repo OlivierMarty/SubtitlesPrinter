@@ -19,6 +19,7 @@
 #include "parser.h"
 #include "time.h"
 #include "printer.h"
+#include "rich_text.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -44,7 +45,11 @@ void callbackEvent(struct printerEnv* env, int key, void* a) {
   if(key == ' ') {
     // display a message
     if(!timeIsPaused())
-      printerShow(env, "(paused - press space to resume)", 0);
+    {
+      struct richText rt = richTextParse("(paused - press space to resume)\n");
+      printerShow(env, &rt);
+      richTextFree(rt);
+    }
     else
       printerClean(*env);
     
@@ -135,38 +140,43 @@ int main(int argc, char **argv)
   penv.padding = padding;
   penv.gap = gap;
   
+  struct SubtitleLine sline;
+  struct richText rt;
+  int id = 0;
   // show a counter before start the clock
   for(i = delay; i > 0; i--)
   {
     char t[16];
-    sprintf(t, "%d...\n", i);
-    printf("%s", t);
-    printerShow(&penv, t, T_ITALIC);
+    sprintf(t, "<i>%d...</i>\n", i);
+    printf("%s\n", t);
+    rt = richTextParse(t);
+    printerShow(&penv, &rt);
     sleep(1);
+    richTextFree(rt);
   }
   printf("0 !\n");
   printerClean(penv);
   timeInitialize(-factor*shift);
   
-  struct SubtitleLine sline;
-  int id = 0;
   while(!feof(f))
   {
     id = next(f, id+1, &sline);
     if(timeInFuture(timeFactor(sline.end, factor)))
     {
+      rt = richTextParse(sline.text);
       timeSleepUntil(timeFactor(sline.begin, factor));
       
       printf("%ds\n", sline.begin.tv_sec);
       // show
       printf("%s\n", sline.text);
-      printerShow(&penv, sline.text, 0);
+      printerShow(&penv, &rt);
       
       // hide
       timeSleepUntil(timeFactor(sline.end, factor));
       // TODO manage when the next subtitle appear before
       printf("\n");
       printerClean(penv);
+      richTextFree(rt);
       manageEvent(&penv, callbackEvent, NULL);
     }
     else

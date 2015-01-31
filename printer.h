@@ -19,6 +19,7 @@
 #ifndef H_PRINTER
 #define H_PRINTER
 
+#include "rich_text.h"
 #include <X11/Xlib.h>
 
 struct printerEnv
@@ -40,13 +41,11 @@ struct printerEnv
   unsigned long color_background, color_text;
 };
 
-enum t_type {T_ITALIC = 1, T_BOLD = 2};
-
 struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   char *font_bi);
 void printerCloseWindow(struct printerEnv env);
 
-void printerShow(struct printerEnv *env, char* text, enum t_type font);
+void printerShow(struct printerEnv *env, struct richText *rt);
 void printerClean(struct printerEnv env);
 
 void manageEvent(struct printerEnv *env, void callback(struct printerEnv*,int,void*), void* callback_arg);
