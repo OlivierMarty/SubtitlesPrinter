@@ -76,10 +76,8 @@ void timeInitialize(int rel)
 
 struct timespec timeGetRelative()
 {
-  if(pause) {
-    printf("paused !\n");
+  if(pause)
     return tPause;
-  }
 
   struct timespec r;
   if(clock_gettime(CLOCK_REALTIME, &r) < 0)
