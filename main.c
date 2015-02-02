@@ -139,7 +139,8 @@ int main(int argc, char **argv)
     richTextFree(rt);
   }
   printf("0 !\n");
-  timeInitialize(-factor*shift);
+  timeInitialize();
+  timeShift(-factor*shift);
   
   int id = 0;
   t_events events = eventsInit(8);

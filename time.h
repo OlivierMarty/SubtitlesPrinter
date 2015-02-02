@@ -23,16 +23,13 @@
 
 typedef struct timespec mytime;
 
-void timeInitialize(int rel); // add rel seconds to the clock
+void timeInitialize(); // start the clock
+void timeShift(double rel); // arr rel seconde to the clock
 mytime timeGetRelative();
-// return -2 if t is in the past
-int timeSleepUntil(mytime t);
 int timeInFuture(mytime t);
 
 mytime timeCreate(time_t s, long ns);
 
-// return -2 if t is negative
-int timeSleep(mytime t);
 mytime timeDiff(mytime a, mytime b);
 // f should be >= 0
 // this function was wrong, now it returns a
@@ -42,4 +39,3 @@ void timePause(int pause); // pause and resume the clock
 int timeIsPaused();
 
 #endif
-

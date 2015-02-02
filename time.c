@@ -20,17 +20,19 @@
 #include <errno.h>
 #include <stdlib.h>
 
-int timeSleep(struct timespec t)
+void normalize(struct timespec *t)
 {
-  int r = -2;
-  if(t.tv_sec >= 0)
+  // TODO compute directly ?
+  while(t->tv_nsec < 0)
   {
-    do
-    {
-      r = nanosleep(&t, &t);
-    } while(errno == EINTR);
+    t->tv_nsec += 1000000000;
+    t->tv_sec -= 1;
   }
-  return r;
+  while(t->tv_nsec >= 1000000000)
+  {
+    t->tv_nsec -= 1000000000;
+    t->tv_sec += 1;
+  }
 }
 
 struct timespec timeDiff(struct timespec a, struct timespec b)
@@ -38,11 +40,7 @@ struct timespec timeDiff(struct timespec a, struct timespec b)
   struct timespec r;
   r.tv_sec = a.tv_sec - b.tv_sec;
   r.tv_nsec = a.tv_nsec - b.tv_nsec;
-  if(r.tv_nsec < 0)
-  {
-    r.tv_nsec += 1000000000;
-    r.tv_sec -= 1;
-  }
+  normalize(&r);
   return r;
 }
 
@@ -66,7 +64,7 @@ struct timespec timeFactor(struct timespec a, double f)
 struct timespec begin;
 struct timespec tPause; // beginning of the pause
 int pause;
-void timeInitialize(int rel)
+void timeInitialize()
 {
   pause = 0;
   if(clock_gettime(CLOCK_REALTIME, &begin) < 0)
@@ -74,7 +72,12 @@ void timeInitialize(int rel)
     perror("clock_gettime()");
     exit(1);
   }
-  begin.tv_sec += rel;
+}
+
+void timeShift(double rel)
+{
+  begin.tv_nsec += rel*1000000000.;
+  normalize(&begin);
 }
 
 struct timespec timeGetRelative()
@@ -89,12 +92,6 @@ struct timespec timeGetRelative()
     exit(1);
   }
   return timeDiff(r, begin);
-}
-
-int timeSleepUntil(struct timespec t)
-{
-  struct timespec current = timeGetRelative();
-  return timeSleep(timeDiff(t, current));
 }
 
 struct timespec timeCreate(time_t s, long ns)
