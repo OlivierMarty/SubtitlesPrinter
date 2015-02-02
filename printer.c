@@ -53,6 +53,7 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
       fprintf(stderr, "Unable to open display\n");
       exit(1);
   }
+  env.d_fd = ConnectionNumber(env.d);
   env.s = DefaultScreen(env.d);
 
   XVisualInfo vinfo;
@@ -193,7 +194,8 @@ int drawText(struct printerEnv env, struct richText *rt,
     drawTextLines(env, rt->pos, rt->size, rt->type, x, y, maxw, draw);
 }
 
-void printerShow(struct printerEnv *env, struct richText *rt)
+// TODO show and hide : show mutliple rt, with id
+void printerShow(struct printerEnv *env, struct richText *rt, int id)
 {
   int x, y;
   // remap the window
@@ -224,43 +226,41 @@ void printerShow(struct printerEnv *env, struct richText *rt)
   XFlush(env->d);
 }
 
-void printerClean(struct printerEnv env)
+void printerHide(struct printerEnv *env, int id)
 {
-  XClearWindow(env.d, env.w);
-  XUnmapWindow(env.d, env.w);
-  XFlush(env.d);
+  XClearWindow(env->d, env->w);
+  XUnmapWindow(env->d, env->w);
+  XFlush(env->d);
 }
 
-void manageEvent(struct printerEnv *env, void callback(struct printerEnv*,int,void*), void* callback_arg)
+t_event manageEvent(struct printerEnv *env)
 {
   XEvent event;
   int r;
   XComposeStatus comp;
+  t_event e;
 
-  while(XPending(env->d))
+  XNextEvent(env->d, &event);
+  switch(event.type)
   {
-    XNextEvent(env->d, &event);
-    switch(event.type)
-    {
-      case FocusOut:
-        XGetInputFocus(env->d, &env->w_focused, &r);
-        if(env->w_focused == PointerRoot)
-          env->w_focused = RootWindow(env->d, env->s); // TODO why ?
-        XSelectInput(env->d, env->w_focused, KeyPressMask|FocusChangeMask);
-        break;
-      
-      case KeyPress:
-        callback(env, (int)XkbKeycodeToKeysym(env->d, event.xkey.keycode, 0, event.xkey.state & ShiftMask ? 1 : 0), callback_arg);
-        break;
-      
-      default:
-        break;
-    }
+    case FocusOut:
+      XGetInputFocus(env->d, &env->w_focused, &r);
+      if(env->w_focused == PointerRoot)
+        env->w_focused = RootWindow(env->d, env->s); // TODO why ?
+      XSelectInput(env->d, env->w_focused, KeyPressMask|FocusChangeMask);
+      event.type = T_NONE;
+      break;
+    
+    case KeyPress:
+      e.type = T_KEYPRESSED;
+      e.keyPressed.key = (int)XkbKeycodeToKeysym(env->d, event.xkey.keycode, 0,
+        event.xkey.state & ShiftMask ? 1 : 0);
+      // e.keyPress.time = TODO (event.xkey.time is the number of milliseconds (from uptime ?)
+      break;
+    
+    default:
+      e.type = T_NONE;
+      break;
   }
-}
-
-void waitEvent(struct printerEnv *env)
-{
-  XEvent event;
-  XPeekEvent(env->d, &event);
+  return e;
 }

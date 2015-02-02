@@ -20,9 +20,15 @@
 #include "time.h"
 #include "printer.h"
 #include "rich_text.h"
+#include "events.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+
+enum _t_state { S_RUNNING, S_PAUSED, S_STOP };
+typedef enum _t_state t_state;
+
+
 
 void displayUsage(char *name)
 {
@@ -30,7 +36,7 @@ void displayUsage(char *name)
   printf("Options :\n");
   printf("  -s sec\t: skip the first x seconds\n");
   printf("  -d sec\t: wait x seconds before starting (default : 5)\n");
-  printf("  -t x\t\t: time factor x1000\n");
+//  printf("  -t x\t\t: time factor x1000\n");
   printf("  -m px\t\t: margin with the bottom of the screen\n");
   printf("  -p px\t\t: padding of the box\n");
   printf("  -g px\t\t: gap between two lines\n");
@@ -41,35 +47,13 @@ void displayUsage(char *name)
   printf("  -h\t\t: display this help and exit\n");
 }
 
-void callbackEvent(struct printerEnv* env, int key, void* a) {
-  if(key == ' ') {
-    // display a message
-    if(!timeIsPaused())
-    {
-      struct richText rt = richTextParse("(paused - press space to resume)\n");
-      printerShow(env, &rt);
-      richTextFree(rt);
-    }
-    else
-      printerClean(*env);
-    
-    // toggle pause
-    timePause(!timeIsPaused());
-    // if paused, wait for an event
-    while(timeIsPaused())
-    {
-      waitEvent(env);
-      manageEvent(env, callbackEvent, a);
-    }
-  }
-}
-
 int main(int argc, char **argv)
 {
   int i, shift = 0, delay = 5, margin_bottom = 50, padding = 5, gap = 5;
   float factor = 1.0;
   char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
   FILE *f = NULL;
+  t_state state = S_RUNNING;
   
   // parse arguments
   int c;
@@ -82,9 +66,10 @@ int main(int argc, char **argv)
       case 'd':
         delay = atoi(optarg);
         break;
-      case 't':
-        factor = (float)atoi(optarg)/1000;
+      /*case 't':
+        factor = atoi(optarg)/1000.;
         break;
+      */
       case 'm':
         margin_bottom = atoi(optarg);
         break;
@@ -140,53 +125,165 @@ int main(int argc, char **argv)
   penv.padding = padding;
   penv.gap = gap;
   
-  struct SubtitleLine sline;
-  struct richText rt;
-  int id = 0;
   // show a counter before start the clock
   for(i = delay; i > 0; i--)
   {
+    struct richText *rt;
     char t[16];
     sprintf(t, "<i>%d...</i>\n", i);
     printf("%s\n", t);
     rt = richTextParse(t);
-    printerShow(&penv, &rt);
+    printerShow(&penv, rt, 0);
     sleep(1);
+    printerHide(&penv, 0);
     richTextFree(rt);
   }
   printf("0 !\n");
-  printerClean(penv);
   timeInitialize(-factor*shift);
   
-  while(!feof(f))
+  int id = 0;
+  t_events events = eventsInit(8);
+  t_event event;
+  event.type = T_SHOW;
+  event.show.id = -1; // first
+  while(1)
   {
-    id = next(f, id+1, &sline);
-    if(timeInFuture(timeFactor(sline.end, factor)))
+    switch(state)
     {
-      rt = richTextParse(sline.text);
-      timeSleepUntil(timeFactor(sline.begin, factor));
-      
-      printf("%ds\n", sline.begin.tv_sec);
-      // show
-      printf("%s\n", sline.text);
-      printerShow(&penv, &rt);
-      
-      // hide
-      timeSleepUntil(timeFactor(sline.end, factor));
-      // TODO manage when the next subtitle appear before
-      printf("\n");
-      printerClean(penv);
-      richTextFree(rt);
-      manageEvent(&penv, callbackEvent, NULL);
+      case S_RUNNING:
+        switch(event.type)
+        {
+          case T_KEYPRESSED:
+            if(event.keyPressed.key == ' ')
+            {
+              state = S_PAUSED;
+              printf("paused...\n");
+              timePause(1);
+            }
+            break;
+
+          case T_HIDE:
+            printerHide(&penv, event.hide.id);
+            free(event.hide.rt->raw);
+            richTextFree(event.hide.rt);
+            printf("\n");
+            break;
+          
+          case T_SHOW:
+            if(event.hide.id >= 0)
+            {
+              printf("%ds\n", timeFactor(event.show.time, 1./factor).tv_sec);
+              printf("%s\n", event.show.rt->raw);
+              printerShow(&penv, event.show.rt, event.show.id);
+            }
+            // grab next subtitles
+            while(1)
+            {
+              struct SubtitleLine sline;
+              if(feof(f))
+                break;
+              id = next(f, id+1, &sline);
+              if(timeInFuture(timeFactor(sline.end, factor)))
+              {
+                char *copy = NULL;
+                struct richText *rt;
+                copy = malloc(sizeof(char[strlen(sline.text)+1]));
+                if(copy == NULL)
+                {
+                  perror("malloc()");
+                  exit(1);
+                }
+                strcpy(copy, sline.text);
+                rt = richTextParse(copy);
+                // show event
+                t_event show, hide;
+                show.type = T_SHOW;
+                show.show.id = id;
+                show.show.rt = rt;
+                show.show.time = timeFactor(sline.begin, factor);
+                // hide event
+                hide.type = T_HIDE;
+                hide.hide.id = id;
+                hide.hide.rt = rt;
+                hide.hide.time = timeFactor(sline.end, factor);
+                eventsPush(&events, show);
+                eventsPush(&events, hide);
+                break;
+              }
+              else
+              {
+                printf("skipped :\n");
+                printf("%s\n", sline.text);
+              }
+            }
+            break;
+        }
+        break;
+      case S_PAUSED:
+        switch(event.type)
+        {
+          case T_KEYPRESSED:
+            if(event.keyPressed.key == ' ')
+            {
+              state = S_RUNNING;
+              printf("end\n");
+              timePause(0);
+            }
+            break;
+        }
+        break;
     }
-    else
+    
+    if(eventsEmpty(events))
+      state = S_STOP;
+    if(state == S_STOP)
+      break;
+    
+    // sleep until next event
+    mytime next_event = eventsNextTime(events);
+    while(1)
     {
-      printf("skipped :\n");
-      printf("%s\n", sline.text);
+      int value;
+      fd_set in_fds;
+      FD_ZERO(&in_fds);
+      FD_SET(penv.d_fd, &in_fds);
+      if(state == S_PAUSED) // blocking select
+        value = pselect(penv.d_fd+1, &in_fds, NULL, NULL, NULL, NULL);
+      else // timeout
+      {
+        struct timespec to_wait = timeDiff(next_event, timeGetRelative());
+        if(to_wait.tv_sec < 0)
+        {
+          to_wait.tv_sec = 0;
+          to_wait.tv_nsec = 0;
+        }
+        value = pselect(penv.d_fd+1, &in_fds, NULL, NULL, &to_wait, NULL);
+      }
+      if(value == -1) // TODO tester interruption par un signal : return 0 ou -1
+      // dans les deux cas c'est foireux
+      {
+        perror("pselect()");
+        exit(1);
+      }
+      else if(value > 0) // x event
+      {
+        while(XPending(penv.d))
+        {
+          event = manageEvent(&penv);
+          if(event.type == T_KEYPRESSED)
+            break;
+        }
+        if(event.type == T_KEYPRESSED)
+          break;
+      }
+      else // deadline
+      {
+        event = eventsPop(&events);
+        break;
+      }
     }
   }
   
   printerCloseWindow(penv);
   fclose(f);
 }
-

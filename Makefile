@@ -17,7 +17,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-SRCS=time.c parser.c rich_text.c printer.c main.c
+SRCS=time.c parser.c rich_text.c events.c printer.c main.c
 CC=gcc
 CFLAGS=
 LIBS=$(shell pkg-config --cflags --libs x11) -lrt

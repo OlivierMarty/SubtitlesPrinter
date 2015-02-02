@@ -35,6 +35,7 @@ mytime timeCreate(time_t s, long ns);
 int timeSleep(mytime t);
 mytime timeDiff(mytime a, mytime b);
 // f should be >= 0
+// this function was wrong, now it returns a
 mytime timeFactor(mytime a, double f);
 
 void timePause(int pause); // pause and resume the clock

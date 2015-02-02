@@ -30,10 +30,13 @@ struct richText
   enum t_type type;
   char *pos;
   int size;
+
+  // if first node :
+  char *raw;
 };
 
-// data is not copied
-struct richText richTextParse(char* data);
-void richTextFree(struct richText rt);
+// data is not copied, field raw contains a pointer to it
+struct richText* richTextParse(char* data);
+void richTextFree(struct richText *rt);
 
 #endif

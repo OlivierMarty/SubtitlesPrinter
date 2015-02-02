@@ -20,11 +20,13 @@
 #define H_PRINTER
 
 #include "rich_text.h"
+#include "events.h"
 #include <X11/Xlib.h>
 
 struct printerEnv
 {
   Display *d;
+  int d_fd;
   int s;
   Window w;
   Window w_focused;
@@ -45,11 +47,12 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   char *font_bi);
 void printerCloseWindow(struct printerEnv env);
 
-void printerShow(struct printerEnv *env, struct richText *rt);
-void printerClean(struct printerEnv env);
+// the id are not implemented now
+void printerShow(struct printerEnv *env, struct richText *rt, int id);
+void printerHide(struct printerEnv *env, int id);
 
-void manageEvent(struct printerEnv *env, void callback(struct printerEnv*,int,void*), void* callback_arg);
-void waitEvent(struct printerEnv *env); // TODO plutot un arguement dans manageEvent qui déclenche une lecture bloquante
+// read next event
+t_event manageEvent(struct printerEnv *env);
 
 #endif
 

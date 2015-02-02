@@ -122,26 +122,17 @@ void parseAux(struct richText *rt) {
   }
 }
 
-struct richText richTextParse(char* data) {
-  struct richText rt;
-  rt.left = NULL;
-  rt.right = NULL;
-  rt.pos = data;
-  rt.size = strlen(data);
-  rt.type = T_REGULAR;
-  parseAux(&rt);
+struct richText* richTextParse(char* data) {
+  struct richText *rt = newRt(NULL, NULL, data, strlen(data), T_REGULAR);
+  parseAux(rt);
+  rt->raw = data;
   return rt;
 }
 
-void richTextFree(struct richText rt) {
-  if(rt.left != NULL)
-  {
-    richTextFree(*rt.left);
-    free(rt.left);
-  }
-  if(rt.right != NULL)
-  {
-    richTextFree(*rt.right);
-    free(rt.right);
-  }
+void richTextFree(struct richText *rt) {
+  if(rt->left != NULL)
+    richTextFree(rt->left);
+  if(rt->right != NULL)
+    richTextFree(rt->right);
+  free(rt);
 }

@@ -49,6 +49,7 @@ struct timespec timeDiff(struct timespec a, struct timespec b)
 // f should be >= 0
 struct timespec timeFactor(struct timespec a, double f)
 {
+  /* bogued code :
   struct timespec r;
   r.tv_sec = f*a.tv_sec;
   r.tv_nsec = f*a.tv_nsec;
@@ -58,6 +59,8 @@ struct timespec timeFactor(struct timespec a, double f)
     r.tv_sec += 1;
   }
   return r;
+  */
+  return a;
 }
 
 struct timespec begin;
