@@ -155,21 +155,30 @@ int main(int argc, char **argv)
         switch(event.type)
         {
           case T_KEYPRESSED:
-            if(event.keyPressed.key == ' ')
+            switch(event.keyPressed.key)
             {
-              state = S_PAUSED;
-              printf("paused...\n");
-              timePause(1);
+              case ' ':
+                state = S_PAUSED;
+                printf("paused...\n");
+                timePause(1);
+                break;
+              case 65361: // left (shift)
+                printf("shift : -0.05s\n");
+                timeShift(-0.050);
+                break;
+              case 65363:
+                printf("shift : +0.05s\n");
+                timeShift(+0.050);
+                break;
             }
+            printf("key : %d\n", event.keyPressed.key);
             break;
-
           case T_HIDE:
             printerHide(&penv, event.hide.id);
             free(event.hide.rt->raw);
             richTextFree(event.hide.rt);
             printf("\n");
             break;
-          
           case T_SHOW:
             if(event.hide.id >= 0)
             {
