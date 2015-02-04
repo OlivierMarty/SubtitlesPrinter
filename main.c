@@ -49,8 +49,8 @@ void displayUsage(char *name)
 
 int main(int argc, char **argv)
 {
-  int i, shift = 0, delay = 5, margin_bottom = 50, padding = 5, gap = 5;
-  float factor = 1.0;
+  int i, delay = 5, margin_bottom = 50, padding = 5, gap = 5;
+  double factor = 1.0, shift = 0.;
   char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
   FILE *f = NULL;
   t_state state = S_RUNNING;
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     switch(c)
     {
       case 's':
-        shift = atoi(optarg);
+        shift = atof(optarg);
         break;
       case 'd':
         delay = atoi(optarg);
@@ -163,12 +163,14 @@ int main(int argc, char **argv)
                 timePause(1);
                 break;
               case 65361: // left (shift)
-                printf("shift : -0.05s\n");
-                timeShift(-0.050);
+                shift -= 0.05;
+                printf("shift : -0.05s (total : %.2f)\n", shift);
+                timeShift(-0.05);
                 break;
               case 65363:
-                printf("shift : +0.05s\n");
-                timeShift(+0.050);
+                shift += 0.05;
+                printf("shift : +0.05s (total : %.2f)\n", shift);
+                timeShift(+0.05);
                 break;
             }
             printf("key : %d\n", event.keyPressed.key);
