@@ -173,7 +173,6 @@ int main(int argc, char **argv)
                 timeShift(+0.05);
                 break;
             }
-            printf("key : %d\n", event.keyPressed.key);
             break;
           case T_HIDE:
             printerHide(&penv, event.hide.id);
