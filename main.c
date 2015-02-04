@@ -184,7 +184,7 @@ int main(int argc, char **argv)
             if(event.hide.id >= 0)
             {
               printf("%ds\n", timeFactor(event.show.time, 1./factor).tv_sec);
-              printf("%s\n", event.show.rt->raw);
+              printf("%s", event.show.rt->raw);
               printerShow(&penv, event.show.rt, event.show.id);
             }
             // grab next subtitles
