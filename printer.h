@@ -23,6 +23,15 @@
 #include "events.h"
 #include <X11/Xlib.h>
 
+struct message
+{
+  struct richText *t;
+  int id;
+  int posy;
+  int height;
+  int width;
+};
+
 struct printerEnv
 {
   Display *d;
@@ -36,20 +45,26 @@ struct printerEnv
   XFontStruct *fontinfo_b;  // bold
   XFontStruct *fontinfo_bi; // both
   int maxascent, maxdescent;
-  int width, height;
-  int padding, gap;
+  int padding, gap, gap2;
   int root_width, root_height;
   int margin_bottom;
   unsigned long color_background, color_text;
+  
+  struct message *texts;
+  int size;
+  int maxsize;
 };
 
 struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   char *font_bi);
 void printerCloseWindow(struct printerEnv env);
 
-// the id are not implemented now
+// rt is not copied
 void printerShow(struct printerEnv *env, struct richText *rt, int id);
 void printerHide(struct printerEnv *env, int id);
+
+// automatically called in printerShow
+void printerRender(struct printerEnv *env);
 
 // read next event
 t_event manageEvent(struct printerEnv *env);

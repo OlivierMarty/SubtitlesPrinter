@@ -83,10 +83,7 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   //env.color_background = a*256*256*256 + r*256*256 + g*256 + b;
   
   // create the window
-  env.width = 1;
-  env.height = 1;
-  env.w = XCreateWindow(env.d, RootWindow(env.d, env.s), 0, 0, env.width,
-    env.height, 0, vinfo.depth, InputOutput, vinfo.visual,
+  env.w = XCreateWindow(env.d, RootWindow(env.d, env.s), 0, 0, 1, 1, 0, vinfo.depth, InputOutput, vinfo.visual,
     CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attr);
   
   // setting fonts
@@ -123,8 +120,12 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   XGetInputFocus(env.d, &env.w_focused, &revert);
   
   // event to be listened
-  XSelectInput(env.d, env.w_focused, KeyPressMask|FocusChangeMask);
+  XSelectInput(env.d, env.w_focused, KeyPressMask | FocusChangeMask | ExposureMask);
   
+  // empty message set
+  env.maxsize = 0;
+  env.size = 0;
+  env.texts = NULL;
   return env;
 }
 
@@ -161,7 +162,7 @@ int drawTextRaw(struct printerEnv env, char *text, int size, enum t_type font,
 }
 
 int drawTextLines(struct printerEnv env, char *text, int size, enum t_type font,
-    int *x, int *y, int *maxw, int draw)
+    int initx, int *x, int *y, int *maxw, int draw)
 {
   char *nl = memchr(text, '\n', size);
   if(nl == NULL)
@@ -175,62 +176,143 @@ int drawTextLines(struct printerEnv env, char *text, int size, enum t_type font,
     drawTextRaw(env, text, nl-text, font, x, y, draw);
     if(*x > *maxw)
       *maxw = *x;
-    *x = env.padding;
+    *x = initx; // TODO center
     *y += env.maxascent + env.maxdescent + env.gap;
-    drawTextLines(env, nl+1, text-nl-1+size, font, x, y, maxw, draw);
+    drawTextLines(env, nl+1, text-nl-1+size, font, initx, x, y, maxw, draw);
   }
 }
 
 // update x and y
 int drawText(struct printerEnv env, struct richText *rt,
-    int *x, int *y, int *maxw, int draw)
+    int initx, int *x, int *y, int *maxw, int draw)
 {
   if(rt->left != NULL && rt->right != NULL)
   {
-    drawText(env, rt->left, x, y, maxw, draw);
-    drawText(env, rt->right, x, y, maxw, draw);
+    drawText(env, rt->left, initx, x, y, maxw, draw);
+    drawText(env, rt->right, initx, x, y, maxw, draw);
   }
   else
-    drawTextLines(env, rt->pos, rt->size, rt->type, x, y, maxw, draw);
+    drawTextLines(env, rt->pos, rt->size, rt->type, initx, x, y, maxw, draw);
 }
 
-// TODO show and hide : show mutliple rt, with id
-void printerShow(struct printerEnv *env, struct richText *rt, int id)
+void printerRender(struct printerEnv *env)
 {
-  int x, y;
-  // remap the window
-  XMapWindow(env->d, env->w);
-  //  width and height
-  x = env->padding;
-  env->width = x;
-  env->height = env->padding;
-  drawText(*env, rt, &x, &env->height, &env->width, 0);
-  env->width += env->padding;
-  env->height += env->padding;
-  
-  XClearWindow(env->d, env->w);
-  
-  XMoveResizeWindow(env->d, env->w, (env->root_width - env->width)/2,
-    env->root_height - env->margin_bottom - env->height, env->width,
-    env->height);
-  
-  // frame
-  XSetForeground(env->d, env->gc, env->color_background);
-  XFillRectangle(env->d, env->w, env->gc, 0, 0, env->width, env->height);
-  XSetForeground(env->d, env->gc, env->color_text);
-  
-  // text
-  x = env->padding; // TODO avant c'était centré
-  y = env->padding + env->maxascent;
-  drawText(*env, rt, &x, &y, &x, 1);
+  if(env->size == 0)
+  {
+    XClearWindow(env->d, env->w);
+    XUnmapWindow(env->d, env->w);
+  }
+  else
+  {
+    int i;
+    int w = 0, h = 0;
+    // remap the window
+    XMapWindow(env->d, env->w);
+    XClearWindow(env->d, env->w);
+    
+    // resize the window
+    for(i = 0; i < env->size; i++)
+    {
+      if(env->texts[i].width > w)
+        w = env->texts[i].width;
+      if(-env->texts[i].posy > h)
+        h = -env->texts[i].posy;
+    }
+    w += 2*env->padding;
+    h += 2*env->padding;
+    XMoveResizeWindow(env->d, env->w, (env->root_width - w)/2,
+      env->root_height - env->margin_bottom - h, w, h);
+    
+    // draw texts
+    for(i = 0; i < env->size; i++)
+    {
+      int x = (w-env->texts[i].width)/2;
+      int y = h+env->texts[i].posy - env->padding;
+      // frame
+      XSetForeground(env->d, env->gc, env->color_background);
+      XFillRectangle(env->d, env->w, env->gc, x - env->padding, y - env->padding,
+        env->texts[i].width + 2*env->padding,
+        env->texts[i].height + 2*env->padding);
+      XSetForeground(env->d, env->gc, env->color_text);
+      // text
+      y += env->maxascent;
+      drawText(*env, env->texts[i].t, x, &x, &y, &x, 1);
+    }
+  }
   XFlush(env->d);
 }
 
 void printerHide(struct printerEnv *env, int id)
 {
-  XClearWindow(env->d, env->w);
-  XUnmapWindow(env->d, env->w);
-  XFlush(env->d);
+  int i;
+  for(i = 0; i < env->size; i++)
+    if(env->texts[i].id == id)
+      break;
+  if(i < env->size)
+  {
+    // delete it
+    memmove(env->texts + i, env->texts + (i + 1),
+      sizeof(struct message[env->size-i-1]));
+    env->size--;
+  }
+}
+
+int getPos(struct printerEnv *env, int h)
+{
+  int pos = -h, i;
+  // change pos until it works
+  while(1)
+  {
+    // is it ok betwen pos and pos+h ?
+    int i, gap = env->gap2 + 2 * env->padding;
+    for(i = 0; i < env->size; i++)
+    {
+      int pos2 = env->texts[i].posy;
+      int h2 = env->texts[i].height;
+      if(h2 + pos2 <= pos - gap)
+        continue;
+      if(pos2 >= pos + h + gap)
+        continue;
+      pos = pos2 - h - gap;
+      break;
+    }
+    if(i == env->size)
+      return pos;
+  }
+}
+
+void printerShow(struct printerEnv *env, struct richText *rt, int id)
+{
+  int w = 0, h = 0, x = 0;
+  // hide previous message with this id
+  printerHide(env, id);
+  if(env->maxsize == 0) // first call
+  {
+    env->maxsize = 2;
+    env->texts = malloc(sizeof(struct message[env->maxsize]));
+  }
+  else if(env->size == env->maxsize) // too small
+  {
+    env->maxsize *= 2;
+    env->texts = realloc(env->texts, sizeof(struct message[env->maxsize]));
+  }
+  if(env->texts == NULL)
+  {
+    perror("[re|m]alloc()");
+    exit(1);
+  }
+  env->texts[env->size].t = rt;
+  env->texts[env->size].id = id;
+  
+  // compute w and h
+  drawText(*env, rt, 0, &x, &h, &w, 0);
+  
+  // 0 is the bottom
+  env->texts[env->size].posy = getPos(env, h);
+  env->texts[env->size].height = h;
+  env->texts[env->size].width = w;
+  env->size++;
+  printerRender(env);
 }
 
 t_event manageEvent(struct printerEnv *env)
@@ -243,6 +325,11 @@ t_event manageEvent(struct printerEnv *env)
   XNextEvent(env->d, &event);
   switch(event.type)
   {
+    case Expose:
+      if(event.xexpose.count == 0) // last expose event
+        printerRender(env);
+      break;
+    
     case FocusOut:
       XGetInputFocus(env->d, &env->w_focused, &r);
       if(env->w_focused == PointerRoot)

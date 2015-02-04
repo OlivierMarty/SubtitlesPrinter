@@ -9,6 +9,8 @@ This program uses X11 to show subtitles. If you are using Windows you probably d
 Currently, this program support only .srt subtitles. Please check also there is no empty line at the beginning of the file, or some unprintable characters before the first "1".
 You can see the specs of this format here : http://matroska.org/technical/specs/subtitles/srt.html
 
+To have transparency between subtitles, try to launch xcompmgr before subtitlesPrinter.
+
 ## Installation
 
 Run in a terminal

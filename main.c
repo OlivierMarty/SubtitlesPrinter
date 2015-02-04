@@ -40,6 +40,7 @@ void displayUsage(char *name)
   printf("  -m px\t\t: margin with the bottom of the screen\n");
   printf("  -p px\t\t: padding of the box\n");
   printf("  -g px\t\t: gap between two lines\n");
+  printf("  -k px\t\t: gap between two subtitles\n");
   printf("  -f fontname\t: name of the font to use\n");
   printf("  -i fontname\t: name of the italic font to use\n");
   printf("  -b fontname\t: name of the bold font to use\n");
@@ -47,9 +48,25 @@ void displayUsage(char *name)
   printf("  -h\t\t: display this help and exit\n");
 }
 
+// display a message and program its end (and free) (one at a time)
+void display(struct printerEnv *env, struct richText *rt, int time, t_events *events)
+{
+  static int id = -1;
+  t_event e;
+  printerHide(env, id);
+  id--;
+  e.type = T_HIDE;
+  e.hide.time = timeGetRelative();
+  e.hide.time.tv_sec += time;
+  e.hide.id = id;
+  e.hide.rt = rt;
+  printerShow(env, rt, id);
+  eventsPush(events, e);
+}
+
 int main(int argc, char **argv)
 {
-  int i, delay = 5, margin_bottom = 50, padding = 5, gap = 5;
+  int i, delay = 5, margin_bottom = 50, padding = 5, gap = 5, gap2 = 20;
   double factor = 1.0, shift = 0.;
   char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
   FILE *f = NULL;
@@ -57,7 +74,7 @@ int main(int argc, char **argv)
   
   // parse arguments
   int c;
-  while((c = getopt (argc, argv, "s:d:t:m:p:g:f:i:b:j:h")) != -1)
+  while((c = getopt (argc, argv, "s:d:t:m:p:g:k:f:i:b:j:h")) != -1)
     switch(c)
     {
       case 's':
@@ -78,6 +95,9 @@ int main(int argc, char **argv)
         break;
       case 'g':
         gap = atoi(optarg);
+        break;
+      case 'k':
+        gap2 = atoi(optarg);
         break;
       case 'f':
         font = malloc(strlen(optarg)+1);
@@ -124,6 +144,7 @@ int main(int argc, char **argv)
   penv.margin_bottom = margin_bottom;
   penv.padding = padding;
   penv.gap = gap;
+  penv.gap2 = gap2;
   
   // show a counter before start the clock
   for(i = delay; i > 0; i--)
@@ -138,11 +159,13 @@ int main(int argc, char **argv)
     printerHide(&penv, 0);
     richTextFree(rt);
   }
+  printerRender(&penv);
   printf("0 !\n");
   timeInitialize();
   timeShift(-factor*shift);
   
   int id = 0;
+  struct richText *pausert = richTextParse("<i>paused...</i>\n");
   t_events events = eventsInit(8);
   t_event event;
   event.type = T_SHOW;
@@ -160,22 +183,34 @@ int main(int argc, char **argv)
               case ' ':
                 state = S_PAUSED;
                 printf("paused...\n");
+                printerShow(&penv, pausert, 0);
                 timePause(1);
                 break;
-              case 65361: // left (shift)
-                shift -= 0.05;
-                printf("shift : -0.05s (total : %.2f)\n", shift);
-                timeShift(-0.05);
-                break;
-              case 65363:
+              case 65363: // right shift
                 shift += 0.05;
-                printf("shift : +0.05s (total : %.2f)\n", shift);
-                timeShift(+0.05);
+                printf("shift : +0.05s (total : %.2fs)\n", shift);
+                timeShift(-0.05);
+                {
+                  char *msg = malloc(64);
+                  sprintf(msg, "<i>shift %.2fs</i>\n", shift);
+                  display(&penv, richTextParse(msg), 1, &events);
+                }
+                break;
+              case 65361: // left shift
+                shift -= 0.05;
+                printf("shift : -0.05s (total : %.2fs)\n", shift);
+                timeShift(-0.05);
+                {
+                  char *msg = malloc(64);
+                  sprintf(msg, "<i>shift %.2fs</i>\n", shift);
+                  display(&penv, richTextParse(msg), 1, &events);
+                }
                 break;
             }
             break;
           case T_HIDE:
             printerHide(&penv, event.hide.id);
+            printerRender(&penv);
             free(event.hide.rt->raw);
             richTextFree(event.hide.rt);
             printf("\n");
@@ -238,6 +273,8 @@ int main(int argc, char **argv)
             {
               state = S_RUNNING;
               printf("end\n");
+              printerHide(&penv, 0);
+              printerRender(&penv);
               timePause(0);
             }
             break;
@@ -295,6 +332,7 @@ int main(int argc, char **argv)
     }
   }
   
+  richTextFree(pausert);
   printerCloseWindow(penv);
   fclose(f);
 }
