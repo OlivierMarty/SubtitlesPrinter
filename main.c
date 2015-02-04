@@ -295,7 +295,10 @@ int main(int argc, char **argv)
       fd_set in_fds;
       FD_ZERO(&in_fds);
       FD_SET(penv.d_fd, &in_fds);
-      if(state == S_PAUSED) // blocking select
+      if(XPending(penv.d)) // event waiting (pselect does no see events that come
+      // during the beginning of the program
+        value = 1;
+      else if(state == S_PAUSED) // blocking select
         value = pselect(penv.d_fd+1, &in_fds, NULL, NULL, NULL, NULL);
       else // timeout
       {
