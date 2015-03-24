@@ -4,7 +4,7 @@ Print subtitles above a X-screen, independently of the video player.
 
 ## Requirement
 
-This program uses X11 to show subtitles. If you are using Windows you probably don't use X11, if you are using Linux you probably do.
+This program uses X11 to show subtitles.
 
 Currently, this program support only .srt subtitles. Please check also there is no empty line at the beginning of the file, or some unprintable characters before the first "1".
 You can see the specs of this format here : http://matroska.org/technical/specs/subtitles/srt.html
@@ -27,8 +27,11 @@ To show file.srt, run in a terminal :
 subtitlesPrinter file.srt
 ```
 
+### Controls
+
 To quit, press CTRL+C in the terminal.
 To pause and resume, press space anywhere (this does not work with all windows).
+To shift the clock, press left and right arrows.
 
 ### Optional arguments
 
@@ -39,7 +42,6 @@ subtitlesPrinter -h
 
 ## TODO
 
-* Manage other evenements, like shift...
 * Support more type of file (with an extern library ?)
 
 Every improvement is welcome !
