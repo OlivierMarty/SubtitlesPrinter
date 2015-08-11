@@ -20,17 +20,22 @@
 
 #include "parser.h"
 
+int empty_line(char *str)
+{
+  return str[0] == '\n' || str[0] == '\0' || (str[0] == '\r' && str[1] == '\n');
+}
+
 int next(FILE *f, int expected, struct SubtitleLine *r)
 {
   int t_h, t_m, t_s, t_ms;
-  fscanf(f, "%d\n", &r->id);
+  fscanf(f, "%d ", &r->id);
   if(r->id != expected)
     fprintf(stderr, "expected : %d; found : %d\n", expected, r->id);
-  
+
   fscanf(f, "%d:%d:%d,%d --> ", &t_h, &t_m, &t_s, &t_ms);
   r->begin = timeCreate(t_h*3600 + t_m*60 + t_s, t_ms*1000000);
   // TODO and if there are 4 digits ?
-  fscanf(f, "%d:%d:%d,%d\n", &t_h, &t_m, &t_s, &t_ms);
+  fscanf(f, "%d:%d:%d,%d ", &t_h, &t_m, &t_s, &t_ms);
   r->end = timeCreate(t_h*3600 + t_m*60 + t_s, t_ms*1000000);
 
   *(r->text) = '\0';
@@ -38,11 +43,15 @@ int next(FILE *f, int expected, struct SubtitleLine *r)
   while(1)
   {
     fgets(line, 1024, f);
-    if(feof(f) || line[0] == '\n' || line[0] == '\0' || (line[0] == '\r' && line[1] == '\n'))
+    if(empty_line(line))
       break;
     strcat(r->text, line);
+    if(feof(f))
+    {
+      strcat(r->text, "\n");
+      break;
+    }
   }
-  
+
   return r->id;
 }
-
