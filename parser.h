@@ -30,8 +30,20 @@ struct SubtitleLine
   mytime end;
 };
 
+// read the header, if any
+int start_srt(FILE *f);
+int start_sub(FILE *f);
+int start_sub2(FILE *f);
+int start_vtt(FILE *f);
+
 // read the next subtitle, expected to be expected-th
 // return the number of the readed subtitle
-int next(FILE *f, int expected, struct SubtitleLine *r);
+int next_srt(FILE *f, int expected, struct SubtitleLine *r);
+int next_sub(FILE *f, int expected, struct SubtitleLine *r);
+int next_sub2(FILE *f, int expected, struct SubtitleLine *r);
+int next_vtt(FILE *f, int expected, struct SubtitleLine *r);
+
+// test if a string is an empty line
+int empty_line(char *f);
 
 #endif

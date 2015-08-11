@@ -93,6 +93,7 @@ struct timespec timeCreate(time_t s, long ns)
   struct timespec r;
   r.tv_sec = s;
   r.tv_nsec = ns;
+  normalize(&r);
   return r;
 }
 

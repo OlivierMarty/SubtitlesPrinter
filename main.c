@@ -32,11 +32,12 @@ typedef enum _t_state t_state;
 
 void displayUsage(char *name)
 {
-  printf("Usage : %s file.srt\n", name);
+  printf("Usage : %s file.srt or .sub .sub2 .vtt\n", name);
   printf("Options :\n");
   printf("  -s sec\t: skip the first x seconds\n");
   printf("  -d sec\t: wait x seconds before starting (default : 5)\n");
   printf("  -t x\t\t: time factor x1000\n");
+  printf("  -e x\t\t: input format (srt, sub, sub2 (MicroDVD), vtt)\n");
   printf("  -m px\t\t: margin with the bottom of the screen\n");
   printf("  -p px\t\t: padding of the box\n");
   printf("  -g px\t\t: gap between two lines\n");
@@ -64,17 +65,29 @@ void display(struct printerEnv *env, struct richText *rt, int time, t_events *ev
   eventsPush(events, e);
 }
 
+int extension(const char *str, const char *suffix)
+{
+  if(!str || !suffix)
+    return 0;
+  size_t lenstr = strlen(str);
+  size_t lensuffix = strlen(suffix);
+  if(lensuffix > lenstr)
+    return 0;
+  return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+}
+
 int main(int argc, char **argv)
 {
   int i, delay = 5, margin_bottom = 50, padding = 5, gap = 5, gap2 = 20;
   double factor = 1.0, shift = 0.;
-  char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
+  char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL,
+    *format = NULL;
   FILE *f = NULL;
   t_state state = S_RUNNING;
 
   // parse arguments
   int c;
-  while((c = getopt (argc, argv, "s:d:t:m:p:g:k:f:i:b:j:h")) != -1)
+  while((c = getopt (argc, argv, "s:d:t:e:m:p:g:k:f:i:b:j:h")) != -1)
     switch(c)
     {
       case 's':
@@ -85,6 +98,10 @@ int main(int argc, char **argv)
         break;
       case 't':
         factor = atoi(optarg)/1000.;
+        break;
+      case 'e':
+        format = malloc(strlen(optarg)+1);
+        strcpy(format, optarg);
         break;
       case 'm':
         margin_bottom = atoi(optarg);
@@ -133,6 +150,50 @@ int main(int argc, char **argv)
   if(f == NULL)
   {
     perror("fopen()");
+    exit(1);
+  }
+
+  int (*start_f)(FILE*);
+  int (*next_f)(FILE *f, int expected, struct SubtitleLine *r);
+
+  if((format == NULL && extension(argv[optind], ".srt"))
+    || (format != NULL && !strcmp(format, "srt")))
+  {
+    printf("Type : srt\n");
+    start_f = start_srt;
+    next_f = next_srt;
+  }
+  else if((format == NULL && extension(argv[optind], ".sub"))
+    || (format != NULL && !strcmp(format, "sub")))
+  {
+    printf("Type : sub\n");
+    start_f = start_sub;
+    next_f = next_sub;
+  }
+  else if((format == NULL && extension(argv[optind], ".sub2"))
+    || (format != NULL && !strcmp(format, "sub2")))
+  {
+    printf("Type : sub2\n");
+    start_f = start_sub2;
+    next_f = next_sub2;
+  }
+  else if((format == NULL && extension(argv[optind], ".vtt"))
+    || (format != NULL && !strcmp(format, "vtt")))
+  {
+    printf("Type : vtt\n");
+    start_f = start_vtt;
+    next_f = next_vtt;
+  }
+  else
+  {
+    fprintf(stderr, "Unknow format !\n");
+    displayUsage(argv[0]);
+    exit(1);
+  }
+
+  if(!start_f(f))
+  {
+    fprintf(stderr, "Bad header !\n");
     exit(1);
   }
 
@@ -227,7 +288,7 @@ int main(int argc, char **argv)
               struct SubtitleLine sline;
               if(feof(f))
                 break;
-              id = next(f, id+1, &sline);
+              id = next_f(f, id+1, &sline);
               sline.begin = timeFactor(sline.begin, factor);
               sline.end = timeFactor(sline.end, factor);
               if(timeInFuture(sline.end))
@@ -339,4 +400,5 @@ int main(int argc, char **argv)
   richTextFree(pausert);
   printerCloseWindow(penv);
   fclose(f);
+  return 0;
 }

@@ -20,10 +20,37 @@
 
 #include "parser.h"
 
-// TODO give an environment to parser, in order to store style...
-// or parse everything at once
-
-int empty_line(char *str)
+int start_vtt(FILE *f)
 {
-  return str[0] == '\n' || str[0] == '\0' || (str[0] == '\r' && str[1] == '\n');
+  char word[7];
+  return fscanf(f, "%6s ", word) == 1 && strcmp(word, "WEBVTT") == 0;
+}
+
+int next_vtt(FILE *f, int expected, struct SubtitleLine *r)
+{
+  int t_h, t_m, t_s, t_ms;
+  fscanf(f, "%*d "); // we ignore it
+
+  fscanf(f, "%d:%d:%d.%d --> ", &t_h, &t_m, &t_s, &t_ms);
+  r->begin = timeCreate(t_h*3600 + t_m*60 + t_s, t_ms*1000000);
+  // TODO and if there are 4 digits ?
+  fscanf(f, "%d:%d:%d.%d ", &t_h, &t_m, &t_s, &t_ms);
+  r->end = timeCreate(t_h*3600 + t_m*60 + t_s, t_ms*1000000);
+
+  *(r->text) = '\0';
+  char line[1024];
+  while(1)
+  {
+    if(fgets(line, 1024, f) == NULL || empty_line(line))
+      break;
+    strcat(r->text, line);
+    if(feof(f))
+    {
+      strcat(r->text, "\n");
+      break;
+    }
+  }
+
+  r->id = expected;
+  return r->id;
 }
