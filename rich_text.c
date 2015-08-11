@@ -19,6 +19,7 @@
 #include "rich_text.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 
 char *strnstr(const char *s, const char *find, size_t slen)

@@ -19,6 +19,7 @@
 #include "time.h"
 #include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 void normalize(struct timespec *t)
 {

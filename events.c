@@ -22,6 +22,7 @@
 #include "events.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 t_events eventsInit(int initSize)
 {
