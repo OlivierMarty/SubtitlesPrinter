@@ -58,13 +58,13 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
 
   XVisualInfo vinfo;
   XMatchVisualInfo(env.d, env.s, 32, TrueColor, &vinfo);
-  
+
   // size of the screen
   XWindowAttributes RootAttr;
   XGetWindowAttributes(env.d, RootWindow(env.d, env.s), &RootAttr);
   env.root_width = RootAttr.width;
   env.root_height = RootAttr.height;
-  
+
   // set window attributes
   XSetWindowAttributes attr;
   attr.colormap = XCreateColormap(env.d, RootWindow(env.d, env.s),
@@ -72,7 +72,7 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   attr.border_pixel = 0;
   attr.background_pixel = 0;
   attr.override_redirect = 1; // no window manager border
-  
+
   // set colors
   env.color_text = XWhitePixel(env.d, env.s);
   XColor tmp;
@@ -81,11 +81,11 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   env.color_background = tmp.pixel;
   //unsigned short r = 34, g = 34, b = 34, a = 192; // TODO where is the doc ?
   //env.color_background = a*256*256*256 + r*256*256 + g*256 + b;
-  
+
   // create the window
   env.w = XCreateWindow(env.d, RootWindow(env.d, env.s), 0, 0, 1, 1, 0, vinfo.depth, InputOutput, vinfo.visual,
     CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attr);
-  
+
   // setting fonts
   char *fontname = (font == NULL) ?
     "-bitstream-bitstream charter-medium-r-normal--*-280-100-100-p-*-iso8859-1"
@@ -107,21 +107,21 @@ struct printerEnv printerOpenWindow(char *font, char *font_i, char *font_b,
   loadFont(&env, &env.fontinfo_bi, (font_bi == NULL) ?
     "-bitstream-bitstream charter-bold-i-normal--*-280-100-100-p-*-iso8859-1"
     : font_bi);
-  
+
   // create GC
   XGCValues gr_values;
   gr_values.font = env.fontinfo->fid;
   gr_values.foreground = XWhitePixel(env.d, env.s);
   gr_values.background = XBlackPixel(env.d, env.s);
   env.gc = XCreateGC(env.d, env.w, GCFont | GCForeground, &gr_values);
-  
+
   // focused window (for keyboard)
   int revert;
   XGetInputFocus(env.d, &env.w_focused, &revert);
-  
+
   // event to be listened
   XSelectInput(env.d, env.w_focused, KeyPressMask | FocusChangeMask | ExposureMask);
-  
+
   // empty message set
   env.maxsize = 0;
   env.size = 0;
@@ -209,7 +209,7 @@ void printerRender(struct printerEnv *env)
     // remap the window
     XMapWindow(env->d, env->w);
     XClearWindow(env->d, env->w);
-    
+
     // resize the window
     for(i = 0; i < env->size; i++)
     {
@@ -222,7 +222,7 @@ void printerRender(struct printerEnv *env)
     h += 2*env->padding;
     XMoveResizeWindow(env->d, env->w, (env->root_width - w)/2,
       env->root_height - env->margin_bottom - h, w, h);
-    
+
     // draw texts
     for(i = 0; i < env->size; i++)
     {
@@ -303,10 +303,10 @@ void printerShow(struct printerEnv *env, struct richText *rt, int id)
   }
   env->texts[env->size].t = rt;
   env->texts[env->size].id = id;
-  
+
   // compute w and h
   drawText(*env, rt, 0, &x, &h, &w, 0);
-  
+
   // 0 is the bottom
   env->texts[env->size].posy = getPos(env, h);
   env->texts[env->size].height = h;
@@ -329,7 +329,7 @@ t_event manageEvent(struct printerEnv *env)
       if(event.xexpose.count == 0) // last expose event
         printerRender(env);
       break;
-    
+
     case FocusOut:
       XGetInputFocus(env->d, &env->w_focused, &r);
       if(env->w_focused == PointerRoot)
@@ -337,14 +337,14 @@ t_event manageEvent(struct printerEnv *env)
       XSelectInput(env->d, env->w_focused, KeyPressMask|FocusChangeMask);
       event.type = T_NONE;
       break;
-    
+
     case KeyPress:
       e.type = T_KEYPRESSED;
       e.keyPressed.key = (int)XkbKeycodeToKeysym(env->d, event.xkey.keycode, 0,
         event.xkey.state & ShiftMask ? 1 : 0);
       // e.keyPress.time = TODO (event.xkey.time is the number of milliseconds (from uptime ?)
       break;
-    
+
     default:
       e.type = T_NONE;
       break;

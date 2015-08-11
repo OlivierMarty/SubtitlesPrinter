@@ -77,4 +77,3 @@ t_events eventsInit(int initSize);
 int eventsEmpty(t_events events);
 
 #endif
-

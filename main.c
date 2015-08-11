@@ -71,7 +71,7 @@ int main(int argc, char **argv)
   char *font = NULL, *font_i = NULL, *font_b = NULL, *font_bi = NULL;
   FILE *f = NULL;
   t_state state = S_RUNNING;
-  
+
   // parse arguments
   int c;
   while((c = getopt (argc, argv, "s:d:t:m:p:g:k:f:i:b:j:h")) != -1)
@@ -122,30 +122,30 @@ int main(int argc, char **argv)
       default:
         return 1;
     }
-  
+
   if(optind >= argc)
   {
     fprintf(stderr, "Missing filename.\n");
     displayUsage(argv[0]);
     return 1;
   }
-  
+
   f = fopen(argv[optind], "r");
   if(f == NULL)
   {
     perror("fopen()");
     exit(1);
   }
-  
+
   // open the window
   struct printerEnv penv = printerOpenWindow(font, font_i, font_b, font_bi);
-  
+
   // set attributes
   penv.margin_bottom = margin_bottom;
   penv.padding = padding;
   penv.gap = gap;
   penv.gap2 = gap2;
-  
+
   // show a counter before start the clock
   for(i = delay; i > 0; i--)
   {
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
   printf("0 !\n");
   timeInitialize();
   timeShift(-factor*shift);
-  
+
   int id = 0;
   struct richText *pausert = richTextParse("<i>paused...</i>\n");
   t_events events = eventsInit(8);
@@ -281,12 +281,12 @@ int main(int argc, char **argv)
         }
         break;
     }
-    
+
     if(eventsEmpty(events))
       state = S_STOP;
     if(state == S_STOP)
       break;
-    
+
     // sleep until next event
     mytime next_event = eventsNextTime(events);
     while(1)
@@ -334,7 +334,7 @@ int main(int argc, char **argv)
       }
     }
   }
-  
+
   richTextFree(pausert);
   printerCloseWindow(penv);
   fclose(f);

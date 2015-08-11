@@ -35,4 +35,3 @@ struct SubtitleLine
 int next(FILE *f, int expected, struct SubtitleLine *r);
 
 #endif
-

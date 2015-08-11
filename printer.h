@@ -49,7 +49,7 @@ struct printerEnv
   int root_width, root_height;
   int margin_bottom;
   unsigned long color_background, color_text;
-  
+
   struct message *texts;
   int size;
   int maxsize;
@@ -70,4 +70,3 @@ void printerRender(struct printerEnv *env);
 t_event manageEvent(struct printerEnv *env);
 
 #endif
-

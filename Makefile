@@ -40,4 +40,3 @@ install: subtitlesPrinter
 
 clean:
 	rm -f *.o subtitlesPrinter
-
