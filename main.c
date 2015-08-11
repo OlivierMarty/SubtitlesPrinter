@@ -36,7 +36,7 @@ void displayUsage(char *name)
   printf("Options :\n");
   printf("  -s sec\t: skip the first x seconds\n");
   printf("  -d sec\t: wait x seconds before starting (default : 5)\n");
-//  printf("  -t x\t\t: time factor x1000\n");
+  printf("  -t x\t\t: time factor x1000\n");
   printf("  -m px\t\t: margin with the bottom of the screen\n");
   printf("  -p px\t\t: padding of the box\n");
   printf("  -g px\t\t: gap between two lines\n");
@@ -83,10 +83,9 @@ int main(int argc, char **argv)
       case 'd':
         delay = atoi(optarg);
         break;
-      /*case 't':
+      case 't':
         factor = atoi(optarg)/1000.;
         break;
-      */
       case 'm':
         margin_bottom = atoi(optarg);
         break;
@@ -218,7 +217,7 @@ int main(int argc, char **argv)
           case T_SHOW:
             if(event.hide.id >= 0)
             {
-              printf("%ds\n", timeFactor(event.show.time, 1./factor).tv_sec);
+              printf("%ds\n", event.show.time.tv_sec);
               printf("%s", event.show.rt->raw);
               printerShow(&penv, event.show.rt, event.show.id);
             }
@@ -229,7 +228,9 @@ int main(int argc, char **argv)
               if(feof(f))
                 break;
               id = next(f, id+1, &sline);
-              if(timeInFuture(timeFactor(sline.end, factor)))
+              sline.begin = timeFactor(sline.begin, factor);
+              sline.end = timeFactor(sline.end, factor);
+              if(timeInFuture(sline.end))
               {
                 char *copy = NULL;
                 struct richText *rt;
@@ -246,12 +247,12 @@ int main(int argc, char **argv)
                 show.type = T_SHOW;
                 show.show.id = id;
                 show.show.rt = rt;
-                show.show.time = timeFactor(sline.begin, factor);
+                show.show.time = sline.begin;
                 // hide event
                 hide.type = T_HIDE;
                 hide.hide.id = id;
                 hide.hide.rt = rt;
-                hide.hide.time = timeFactor(sline.end, factor);
+                hide.hide.time = sline.end;
                 eventsPush(&events, show);
                 eventsPush(&events, hide);
                 break;
