@@ -29,12 +29,12 @@ int start_vtt(FILE *f)
 int next_vtt(FILE *f, int expected, struct SubtitleLine *r)
 {
   int t_h, t_m, t_s, t_ms;
-  fscanf(f, "%*d "); // we ignore it
+  fscanf(f, " %*d "); // we ignore it
 
-  fscanf(f, "%d:%d:%d.%d --> ", &t_h, &t_m, &t_s, &t_ms);
+  fscanf(f, " %d : %d : %d . %d --> ", &t_h, &t_m, &t_s, &t_ms);
   r->begin = timeCreate(t_h*3600 + t_m*60 + t_s, t_ms*1000000);
   // TODO and if there are 4 digits ?
-  fscanf(f, "%d:%d:%d.%d ", &t_h, &t_m, &t_s, &t_ms);
+  fscanf(f, " %d : %d : %d . %d ", &t_h, &t_m, &t_s, &t_ms);
   r->end = timeCreate(t_h*3600 + t_m*60 + t_s, t_ms*1000000);
 
   *(r->text) = '\0';

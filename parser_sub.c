@@ -28,9 +28,9 @@ int start_sub(FILE *f)
 int next_sub(FILE *f, int expected, struct SubtitleLine *r)
 {
   int t_h, t_m, t_s, t_ms;
-  fscanf(f, "%d:%d:%d.%d,", &t_h, &t_m, &t_s, &t_ms);
+  fscanf(f, " %d : %d : %d . %d , ", &t_h, &t_m, &t_s, &t_ms);
   r->begin = timeCreate(t_h*3600 + t_m*60 + t_s, t_ms*10000000);
-  fscanf(f, "%d:%d:%d.%d\n", &t_h, &t_m, &t_s, &t_ms);
+  fscanf(f, " %d : %d : %d . %d ", &t_h, &t_m, &t_s, &t_ms);
   r->end = timeCreate(t_h*3600 + t_m*60 + t_s, t_ms*10000000);
 
   *(r->text) = '\0';

@@ -30,7 +30,7 @@ int next_sub2(FILE *f, int expected, struct SubtitleLine *r)
 {
   float framerate = 23.976; // TODO option
   int tstart, tend;
-  fscanf(f, "{%d}{%d}", &tstart, &tend);
+  fscanf(f, " { %d } { %d } ", &tstart, &tend);
   time_t s = tstart/framerate;
   r->begin = timeCreate(s, (tstart/framerate-s)*1000000000);
   s = tend/framerate;
